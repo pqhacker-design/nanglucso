@@ -5,7 +5,6 @@ from google import genai
 from google.genai import types
 from google.genai.errors import APIError
 
-# Định nghĩa Schema cho kết quả trả về
 class SuaDoiItem(BaseModel):
     slide_number: Optional[int] = Field(default=None, description="Số thứ tự của Slide trong file PowerPoint.")
     anchor_text: Optional[str] = Field(default="", description="Câu văn/dòng neo có thật trong giáo án Word.")
@@ -19,9 +18,31 @@ class TichHopResult(BaseModel):
 class GeminiService:
     def __init__(self, api_key: str):
         if not api_key:
-            raise ValueError("API Key không được để trống.")
+            raise ValueError("Mã API Key không được để trống. Vui lòng nhập API Key.")
         self.client = genai.Client(api_key=api_key)
         self.model_name = "gemini-2.5-flash"
+
+    @staticmethod
+    def _format_api_error(error: Exception) -> str:
+        """Dịch chi tiết các mã lỗi API sang tiếng Việt kèm hướng dẫn xử lý."""
+        err_str = str(error)
+        
+        if "API_KEY_INVALID" in err_str or "API key not valid" in err_str or "PERMISSION_DENIED" in err_str:
+            return "Mã API Key không chính xác hoặc đã bị vô hiệu hóa. Vui lòng kiểm tra và sao chép lại API Key từ Google AI Studio."
+        
+        if "RESOURCE_EXHAUSTED" in err_str or "429" in err_str or "quota" in err_str.lower():
+            return "Đã đạt giới hạn yêu cầu miễn phí của Google (Hết hạn mức hoặc gửi yêu cầu quá nhanh). Vui lòng đợi 30 - 60 giây rồi thử lại hoặc tạo một API Key mới."
+        
+        if "INVALID_ARGUMENT" in err_str:
+            return "Nội dung tệp giáo án gửi đi có định dạng chưa phù hợp hoặc chứa ký tự đặc biệt không hỗ trợ."
+        
+        if "DEADLINE_EXCEEDED" in err_str or "timeout" in err_str.lower():
+            return "Thời gian kết nối tới máy chủ Google quá lâu do mạng yếu hoặc tệp quá dài. Vui lòng kiểm tra lại đường truyền Internet và thử lại."
+            
+        if "UNAVAILABLE" in err_str or "503" in err_str:
+            return "Hệ thống máy chủ Google Gemini đang bảo trì hoặc quá tải tạm thời. Vui lòng thử lại sau vài phút."
+
+        return f"Lỗi phản hồi từ Google: {err_str}"
 
     def _get_tt02_framework_prompt(self, cap_hoc: str) -> str:
         base_framework = """
@@ -42,7 +63,6 @@ class GeminiService:
         return base_framework + level_guide.get(cap_hoc, level_guide["Tự động nhận diện"])
 
     def analyze_and_integrate(self, doc_text: str, cap_hoc: str, integration_type: str) -> dict:
-        """Phân tích và tích hợp cho file giáo án Word (.docx)."""
         tt02_info = self._get_tt02_framework_prompt(cap_hoc)
         ai_framework_info = """
 * Khung Năng lực AI (QĐ 2422/QĐ-BGDĐT):
@@ -94,14 +114,13 @@ Nội dung giáo án gốc:
             )
             return json.loads(response.text)
         except APIError as ae:
-            raise RuntimeError(f"Lỗi kết nối Gemini API: {str(ae)}")
+            raise RuntimeError(self._format_api_error(ae))
         except json.JSONDecodeError:
-            raise RuntimeError("Gemini phản hồi sai cấu trúc JSON.")
+            raise RuntimeError("Trí tuệ nhân tạo (AI) phản hồi dữ liệu chưa đúng cấu trúc. Vui lòng nhấn nút thử lại.")
         except Exception as e:
-            raise RuntimeError(f"Đã xảy ra lỗi: {str(e)}")
+            raise RuntimeError(self._format_api_error(e))
 
     def analyze_pptx_and_integrate(self, slides_text: str, cap_hoc: str, integration_type: str) -> dict:
-        """Phân tích các slide PowerPoint và đề xuất nội dung ghi chú diễn giả (Slide Notes)."""
         tt02_info = self._get_tt02_framework_prompt(cap_hoc)
         ai_framework_info = """
 * Khung Năng lực AI (QĐ 2422/QĐ-BGDĐT):
@@ -131,7 +150,7 @@ Cấp học chỉ định: {cap_hoc}
 
 QUY TẮC QUAN TRỌNG:
 1. Xác định chính xác `slide_number` (số nguyên) của slide cần tích hợp.
-2. Nội dung `insert_content` là lời nhắc/hướng dẫn sư phạm ngắn gọn, thiết thực cho giáo viên (ví dụ: "GV hướng dẫn HS tra cứu dữ liệu...", "GV nhắc HS dùng AI tạo gợi ý nhưng cần đối chiếu SGK...", "Tổ chức cho HS nộp sản phẩm số qua link nhóm...").
+2. Nội dung `insert_content` là lời nhắc/hướng dẫn sư phạm ngắn gọn, thiết thực cho giáo viên.
 3. Không cần tích hợp trên tất cả mọi slide, chỉ chọn những slide hoạt động trọng tâm, slide thảo luận hoặc bài tập.
 
 Danh sách nội dung các Slide:
@@ -152,8 +171,8 @@ Danh sách nội dung các Slide:
             )
             return json.loads(response.text)
         except APIError as ae:
-            raise RuntimeError(f"Lỗi kết nối Gemini API: {str(ae)}")
+            raise RuntimeError(self._format_api_error(ae))
         except json.JSONDecodeError:
-            raise RuntimeError("Gemini phản hồi sai cấu trúc JSON.")
+            raise RuntimeError("Trí tuệ nhân tạo (AI) phản hồi dữ liệu chưa đúng cấu trúc. Vui lòng nhấn nút thử lại.")
         except Exception as e:
-            raise RuntimeError(f"Đã xảy ra lỗi: {str(e)}")
+            raise RuntimeError(self._format_api_error(e))

@@ -66,7 +66,7 @@ with st.expander("⚙️ **CẤU HÌNH HỆ THỐNG & XÁC THỰC BẢN QUYỀN:
                 label_visibility="collapsed"
             )
         with col_key_btn:
-            check_key_btn = st.button("Kiểm tra", use_container_width=True)
+            check_key_btn = st.button("Kiểm tra", type="primary", use_container_width=True)
 
         if api_key_input:
             st.session_state["gemini_api_key"] = api_key_input.strip()

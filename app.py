@@ -3,6 +3,12 @@ from gemini_service import GeminiService
 from word_processor import WordProcessor
 from pptx_processor import PPTXProcessor
 
+st.set_page_config(
+    page_title="Tích hợp Năng lực số & AI vào KHBD / PowerPoint",
+    page_icon="📝",
+    layout="wide"
+)
+
 # CSS tùy chỉnh
 st.markdown(
     """
@@ -31,27 +37,28 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.set_page_config(
-    page_title="Tích hợp Năng lực số & AI vào KHBD / PowerPoint",
-    page_icon="📝",
-    layout="wide"
-)
-
 st.markdown("## 🤖 Tích hợp Năng lực số và AI tự động vào KHBD / PowerPoint")
 st.info("Hỗ trợ tích hợp Năng lực số (Thông tư 02/2025/TT-BGDĐT) và Năng lực AI (QĐ 2422/QĐ-BGDĐT) vào file Word (.docx) hoặc Slide Notes của PowerPoint (.pptx).")
 
 # --- CẤU HÌNH HỆ THỐNG ---
-with st.expander("⚙️ **CẤU HÌNH HỆ THỐNG:**", expanded=False):
+with st.expander("⚙️ **CẤU HÌNH HỆ THỐNG & API KEY:**", expanded=True):
     col_cfg1, col_cfg2, col_cfg3 = st.columns([2, 1, 1])
     
     with col_cfg1:
-        if "gemini_api_key" in st.session_state and st.session_state["gemini_api_key"].strip() != "":
-            api_key = st.session_state["gemini_api_key"]
-            st.success("🔑 **Trạng thái API Key:** Đã nhận diện thành công.")
+        # Lấy giá trị mặc định từ session_state nếu đã từng nhập
+        default_key = st.session_state.get("gemini_api_key", "")
+        api_key_input = st.text_input(
+            "🔑 **Nhập Google Gemini API Key:**",
+            value=default_key,
+            type="password",
+            placeholder="Dán mã API Key (AIzaSy...)",
+            help="Lấy API Key miễn phí tại Google AI Studio (aistudio.google.com)."
+        )
+        if api_key_input:
+            st.session_state["gemini_api_key"] = api_key_input.strip()
+            api_key = api_key_input.strip()
         else:
-            st.warning("⚠️ **Chưa tìm thấy API Key:** Vui lòng quay lại **Trang chủ** để nhập Google Gemini API Key.")
-            st.page_link("🏠_Trang_Chủ.py", label="Nhấn vào đây để Quay lại Trang chủ", icon="🔄")
-            st.stop()
+            api_key = ""
 
     with col_cfg2:
         cap_hoc = st.selectbox(
@@ -92,6 +99,11 @@ with col_left:
             st.session_state['file_ext'] = file_ext
             
             if st.button("🚀 Bắt đầu tích hợp", type="primary", use_container_width=True):
+                # Kiểm tra API Key trực tiếp trước khi chạy
+                if not api_key:
+                    st.error("⚠️ Vui lòng nhập **Google Gemini API Key** ở phần Cấu hình hệ thống phía trên trước khi tiếp tục.")
+                    st.stop()
+
                 with st.spinner("🔄 Đang đọc dữ liệu và gửi phân tích tới Gemini AI..."):
                     try:
                         ai_handler = GeminiService(api_key=api_key)
@@ -196,12 +208,10 @@ with col_left:
 with col_right:
     st.markdown("### ℹ️ Hướng dẫn sử dụng")
     st.markdown("""
-    - **Tải lên** file giáo án Word (`.docx`) hoặc bài giảng PowerPoint (`.pptx`).
-    - Chọn **cấp học mục tiêu** và **loại năng lực** cần tích hợp.
-    - Nhấn **"Bắt đầu tích hợp"** để AI tự động phân tích và xử lý.
-    - **Cơ chế hoạt động:**
-      + **Với file Word (.docx):** Tự động chèn trực tiếp mục tiêu và hoạt động số/AI vào đúng vị trí của từng bài.
-      + **Với file PowerPoint (.pptx):** Tự động thêm các hướng dẫn sư phạm số/AI vào phần **Ghi chú diễn giả (Slide Notes)** mà không làm ảnh hưởng đến bố cục trình chiếu của slide.
+    - **Bước 1:** Nhập trực tiếp **Google Gemini API Key** ở khung cấu hình phía trên.
+    - **Bước 2:** Chọn **cấp học mục tiêu** và **loại năng lực** cần tích hợp.
+    - **Bước 3:** Tải lên tệp Word (`.docx`) hoặc PowerPoint (`.pptx`).
+    - **Bước 4:** Nhấn **"Bắt đầu tích hợp"** và tải tệp kết quả về máy.
     """)
     st.markdown("#### 📌 Khung chuẩn tham chiếu:")
     st.markdown("""

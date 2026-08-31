@@ -269,6 +269,7 @@ with col_right:
     - **Bước 2:** Bấm **"Kiểm tra"** để xác minh API Key.
     - **Bước 3:** Nhập mật khẩu nếu muốn sử dụng tính năng tích hợp vào **Slide Note** của PowerPoint.
     - **Bước 4:** Tải file lên, chọn cấp học và nhấn **"Bắt đầu tích hợp"**.
+    - **Zalo: 0913117321**
     """)
     st.markdown("#### 📌 Khung năng lực áp dụng:")
     st.markdown("""

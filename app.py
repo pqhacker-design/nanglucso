@@ -267,7 +267,7 @@ with col_right:
     st.markdown("""
     - **Bước 1:** Nhận API Key tại link [Google AI Studio](https://aistudio.google.com/app/apikey) và dán vào ô nhập.
     - **Bước 2:** Bấm **"Kiểm tra"** để xác minh API Key.
-    - **Bước 3:** Nhập mật khẩu nếu muốn sử dụng tính năng tích hợp PowerPoint.
+    - **Bước 3:** Nhập mật khẩu nếu muốn sử dụng tính năng tích hợp vào **Slide Note** của PowerPoint.
     - **Bước 4:** Tải file lên, chọn cấp học và nhấn **"Bắt đầu tích hợp"**.
     """)
     st.markdown("#### 📌 Khung năng lực áp dụng:")

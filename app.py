@@ -280,7 +280,7 @@ with col_right:
 st.divider()
 col_left_f, col_right_f = st.columns(2)
 with col_left_f:
-    st.caption("Phát triển bởi Ngo Thanh Hung © 2026 - THCS Bình San")
+    st.caption("Phát triển bởi Ngo Thanh Hung © 2026 - THCS Bình San - Hà Tiên - AG")
 with col_right_f:
     st.markdown(
         "<div style='text-align: right; color: gray; font-size: 0.85em;'>"

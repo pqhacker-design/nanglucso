@@ -5,10 +5,10 @@ from word_processor import WordProcessor
 from pptx_processor import PPTXProcessor
 
 # Mật khẩu mở khóa tính năng PowerPoint (Bạn có thể đổi mật khẩu này tùy ý)
-PREMIUM_PASSWORD = "GIAOVIEN2026"
+PREMIUM_PASSWORD = "GIAOVIENTHCS@2026"
 
 st.set_page_config(
-    page_title="Tích hợp Năng lực số & AI vào KHBD / PowerPoint",
+    page_title="Thầy Hùng - 0913117321",
     page_icon="📝",
     layout="wide"
 )
@@ -279,7 +279,7 @@ with col_right:
 st.divider()
 col_left_f, col_right_f = st.columns(2)
 with col_left_f:
-    st.caption("Phát triển bởi Ngo Thanh Hung © 2026")
+    st.caption("Phát triển bởi Ngo Thanh Hung © 2026 - THCS Bình San")
 with col_right_f:
     st.markdown(
         "<div style='text-align: right; color: gray; font-size: 0.85em;'>"

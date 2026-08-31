@@ -1,7 +1,11 @@
 import streamlit as st
+from google import genai
 from gemini_service import GeminiService
 from word_processor import WordProcessor
 from pptx_processor import PPTXProcessor
+
+# Mật khẩu mở khóa tính năng PowerPoint (Bạn có thể đổi mật khẩu này tùy ý)
+PREMIUM_PASSWORD = "GIAOVIEN2026"
 
 st.set_page_config(
     page_title="Tích hợp Năng lực số & AI vào KHBD / PowerPoint",
@@ -41,38 +45,86 @@ st.markdown("## 🤖 Tích hợp Năng lực số và AI tự động vào KHBD 
 st.info("Hỗ trợ tích hợp Năng lực số (Thông tư 02/2025/TT-BGDĐT) và Năng lực AI (QĐ 2422/QĐ-BGDĐT) vào file Word (.docx) hoặc Slide Notes của PowerPoint (.pptx).")
 
 # --- CẤU HÌNH HỆ THỐNG ---
-with st.expander("⚙️ **CẤU HÌNH HỆ THỐNG & API KEY:**", expanded=True):
-    col_cfg1, col_cfg2, col_cfg3 = st.columns([2, 1, 1])
+with st.expander("⚙️ **CẤU HÌNH HỆ THỐNG & XÁC THỰC BẢN QUYỀN:**", expanded=True):
+    col_cfg1, col_cfg2 = st.columns([1, 1])
     
     with col_cfg1:
-        # Lấy giá trị mặc định từ session_state nếu đã từng nhập
-        default_key = st.session_state.get("gemini_api_key", "")
-        api_key_input = st.text_input(
-            "🔑 **Nhập Google Gemini API Key:**",
-            value=default_key,
-            type="password",
-            placeholder="Dán mã API Key (AIzaSy...)",
-            help="Lấy API Key miễn phí tại Google AI Studio (aistudio.google.com)."
+        st.markdown(
+            "🔑 **Google Gemini API Key:** "
+            "([👉 Nhấn vào đây để lấy API Key miễn phí](https://aistudio.google.com/app/apikey))",
+            unsafe_allow_html=True
         )
+        
+        default_key = st.session_state.get("gemini_api_key", "")
+        col_key_input, col_key_btn = st.columns([3, 1])
+        with col_key_input:
+            api_key_input = st.text_input(
+                "API Key",
+                value=default_key,
+                type="password",
+                placeholder="Dán API Key (AIzaSy...)",
+                label_visibility="collapsed"
+            )
+        with col_key_btn:
+            check_key_btn = st.button("Kiểm tra", use_container_width=True)
+
         if api_key_input:
             st.session_state["gemini_api_key"] = api_key_input.strip()
             api_key = api_key_input.strip()
         else:
             api_key = ""
 
+        # Xử lý khi nhấn nút Kiểm tra API Key
+        if check_key_btn:
+            if not api_key:
+                st.warning("⚠️ Vui lòng dán mã API Key trước khi kiểm tra.")
+            else:
+                try:
+                    client_test = genai.Client(api_key=api_key)
+                    # Gọi thử một câu lệnh tối thiểu để xác thực key
+                    client_test.models.generate_content(
+                        model="gemini-2.5-flash",
+                        contents="ping"
+                    )
+                    st.success("✅ API Key hợp lệ và sẵn sàng sử dụng!")
+                except Exception as ex:
+                    st.error(f"❌ API Key không hợp lệ hoặc đã hết hạn. Chi tiết lỗi: {str(ex)}")
+
     with col_cfg2:
+        st.markdown("🔐 **Mật khẩu mở khóa tính năng nâng cao (PowerPoint):**")
+        input_password = st.text_input(
+            "Mật khẩu",
+            type="password",
+            placeholder="Nhập mật khẩu để mở khóa PPTX...",
+            label_visibility="collapsed"
+        )
+        
+        # Kiểm tra trạng thái mật khẩu
+        is_premium = (input_password == PREMIUM_PASSWORD)
+        if input_password:
+            if is_premium:
+                st.success("🎉 Mở khóa thành công! Cho phép tích hợp cả Word (.docx) và PowerPoint (.pptx).")
+            else:
+                st.error("❌ Mật khẩu chưa đúng. Hệ thống đang ở chế độ cơ bản (Chỉ tích hợp file Word .docx).")
+        else:
+            st.caption("ℹ️ *Chưa có mật khẩu: Chỉ hỗ trợ xử lý file Word (.docx).*")
+
+    col_sub1, col_sub2 = st.columns(2)
+    with col_sub1:
         cap_hoc = st.selectbox(
-            "**Chọn cấp học mục tiêu:**",
+            "**Cấp học mục tiêu:**",
             ["Tự động nhận diện", "Tiểu học", "THCS", "THPT"]
         )
-
-    with col_cfg3:
+    with col_sub2:
         integration_type = st.selectbox(
             "**Loại tích hợp:**",
             ["Cả hai", "Năng lực số", "Năng lực AI"]
         )
 
-# --- MÀN HÌNH CHÍNH: 2 CỘT ---
+# Thiết lập định dạng file cho phép tải lên dựa theo trạng thái mật khẩu
+allowed_types = ["docx", "pptx"] if is_premium else ["docx"]
+
+# --- MÀN HÌNH CHÍNH ---
 col_left, col_right = st.columns([2, 1])
 
 with col_left:
@@ -80,62 +132,68 @@ with col_left:
         st.markdown(
             """
             <div style="background-color: #E0F2FE; padding: 4px; border-left: 5px solid #0284C7; border-radius: 4px; margin-bottom: 10px;">
-                <h4 style="margin: 0; color: #0369A1;">📂 1. Tải lên tệp Giáo án (.docx) hoặc Bài giảng (.pptx)</h4>
+                <h4 style="margin: 0; color: #0369A1;">📂 1. Tải lên tệp bài giảng / kế hoạch bài dạy</h4>
             </div>
             """, 
             unsafe_allow_html=True
         )
+        
+        help_text = "Hỗ trợ cả .docx và .pptx" if is_premium else "Chế độ cơ bản: Chỉ hỗ trợ tệp Word (.docx)."
         uploaded_file = st.file_uploader(
-            "**Chọn file Word (.docx) hoặc PowerPoint (.pptx):**", 
-            type=["docx", "pptx"],
-            help="Hệ thống tự động nhận diện định dạng file tải lên."
+            f"**Chọn file ({', '.join(allowed_types)}):**", 
+            type=allowed_types,
+            help=help_text
         )
 
         if uploaded_file is not None:
             file_bytes = uploaded_file.read()
             file_ext = uploaded_file.name.split('.')[-1].lower()
-            st.success(f"✔️ Đã tải lên file thành công: **{uploaded_file.name}**")
+            st.success(f"✔️ Đã tải lên file: **{uploaded_file.name}**")
             st.session_state['original_filename'] = uploaded_file.name
             st.session_state['file_ext'] = file_ext
             
             if st.button("🚀 Bắt đầu tích hợp", type="primary", use_container_width=True):
-                # Kiểm tra API Key trực tiếp trước khi chạy
                 if not api_key:
-                    st.error("⚠️ Vui lòng nhập **Google Gemini API Key** ở phần Cấu hình hệ thống phía trên trước khi tiếp tục.")
+                    st.error("⚠️ Vui lòng nhập **Google Gemini API Key** ở khung cấu hình phía trên trước khi tiếp tục.")
                     st.stop()
 
-                with st.spinner("🔄 Đang đọc dữ liệu và gửi phân tích tới Gemini AI..."):
+                # Kiểm tra bảo mật nếu file là PowerPoint
+                if file_ext == "pptx" and not is_premium:
+                    st.error("⛔ Bạn cần nhập đúng mật khẩu kích hoạt để sử dụng tính năng tích hợp PowerPoint.")
+                    st.stop()
+
+                with st.spinner("🔄 Đang phân tích dữ liệu và tích hợp năng lực..."):
                     try:
                         ai_handler = GeminiService(api_key=api_key)
                         
                         if file_ext == "pptx":
                             # Luồng xử lý file PowerPoint
-                            progress_bar = st.progress(15, text="Đang đọc nội dung các Slide PowerPoint...")
+                            progress_bar = st.progress(20, text="Đang trích xuất nội dung các Slide...")
                             slides_data = PPTXProcessor.extract_slides_text(file_bytes)
                             
                             if not slides_data:
                                 st.error("❌ Không tìm thấy văn bản trong file PowerPoint.")
                                 st.stop()
                                 
-                            progress_bar.progress(40, text="AI đang phân tích các slide và thiết kế nội dung ghi chú...")
+                            progress_bar.progress(50, text="AI đang thiết kế ghi chú sư phạm cho từng slide...")
                             doc_text = PPTXProcessor.format_doc_text_for_ai(slides_data)
                             ai_result = ai_handler.analyze_pptx_and_integrate(doc_text, cap_hoc, integration_type)
                             st.session_state['ai_result'] = ai_result
                             
-                            progress_bar.progress(80, text="Đang chèn nội dung vào Slide Notes...")
+                            progress_bar.progress(80, text="Đang cập nhật nội dung vào Slide Notes...")
                             processed_file = PPTXProcessor.integrate_into_notes(file_bytes, ai_result)
                             st.session_state['processed_file'] = processed_file
                             
                         else:
                             # Luồng xử lý file Word
-                            progress_bar = st.progress(15, text="Đang đọc nội dung file Word...")
+                            progress_bar = st.progress(20, text="Đang đọc nội dung file Word...")
                             doc_text = WordProcessor.extract_text(file_bytes)
                             
                             if not doc_text.strip():
-                                st.error("❌ File Word trống hoặc không tìm thấy nội dung văn bản hợp lệ.")
+                                st.error("❌ File Word trống hoặc không tìm thấy nội dung hợp lệ.")
                                 st.stop()
                                 
-                            progress_bar.progress(40, text="AI đang phân tích và thiết kế nội dung tích hợp...")
+                            progress_bar.progress(50, text="AI đang phân tích và thiết kế nội dung tích hợp...")
                             ai_result = ai_handler.analyze_and_integrate(doc_text, cap_hoc, integration_type)
                             st.session_state['ai_result'] = ai_result
                             
@@ -165,7 +223,7 @@ with col_left:
             file_ext = st.session_state.get('file_ext', 'docx')
             
             if not sua_doi_list:
-                st.warning("AI không tìm thấy hoặc không đề xuất vị trí tích hợp nào phù hợp.")
+                st.warning("AI không tìm thấy hoặc không đề xuất vị trí tích hợp nào.")
             else:
                 for idx, item in enumerate(sua_doi_list):
                     content = item.get('insert_content', 'Không có nội dung')
@@ -180,12 +238,11 @@ with col_left:
                     else:
                         anchor = item.get('anchor_text', 'Không rõ vị trí')
                         with st.expander(f"{icon} Vị trí {idx+1}: Sau \"{anchor}\" ({loai})", expanded=True):
-                            st.markdown(f"**Văn bản gốc tìm thấy:** `{anchor}`")
-                            st.markdown(f"**Nội dung được chèn:** <span style='color:{color}; font-weight:bold;'>{content}</span>", unsafe_allow_html=True)
+                            st.markdown(f"**Văn bản gốc:** `{anchor}`")
+                            st.markdown(f"**Nội dung chèn:** <span style='color:{color}; font-weight:bold;'>{content}</span>", unsafe_allow_html=True)
             
             st.markdown("---")
             
-            # Tên file tải về
             orig_name = st.session_state.get('original_filename', 'KHBD_TichHop')
             base_name = orig_name.rsplit('.', 1)[0]
             
@@ -208,12 +265,12 @@ with col_left:
 with col_right:
     st.markdown("### ℹ️ Hướng dẫn sử dụng")
     st.markdown("""
-    - **Bước 1:** Nhập trực tiếp **Google Gemini API Key** ở khung cấu hình phía trên.
-    - **Bước 2:** Chọn **cấp học mục tiêu** và **loại năng lực** cần tích hợp.
-    - **Bước 3:** Tải lên tệp Word (`.docx`) hoặc PowerPoint (`.pptx`).
-    - **Bước 4:** Nhấn **"Bắt đầu tích hợp"** và tải tệp kết quả về máy.
+    - **Bước 1:** Nhận API Key tại link [Google AI Studio](https://aistudio.google.com/app/apikey) và dán vào ô nhập.
+    - **Bước 2:** Bấm **"Kiểm tra"** để xác minh API Key.
+    - **Bước 3:** Nhập mật khẩu nếu muốn sử dụng tính năng tích hợp PowerPoint.
+    - **Bước 4:** Tải file lên, chọn cấp học và nhấn **"Bắt đầu tích hợp"**.
     """)
-    st.markdown("#### 📌 Khung chuẩn tham chiếu:")
+    st.markdown("#### 📌 Khung năng lực áp dụng:")
     st.markdown("""
     - **Năng lực số:** Thông tư số 02/2025/TT-BGDĐT.
     - **Năng lực AI:** Quyết định số 2422/QĐ-BGDĐT.

@@ -9,7 +9,7 @@ from pptx_processor import PPTXProcessor
 # --- CẤU HÌNH BẢN QUYỀN & GIỚI HẠN DÙNG THỬ ---
 VALID_ACCOUNTS = {
     "admin": "GIAOVIEN2026",
-    "thayhung": "123456",
+    "thayhung": "300506",
     "giaovien": "hoctap2026"
 }
 MAX_FREE_TRIALS = 2

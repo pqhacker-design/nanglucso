@@ -1,4 +1,5 @@
 streamlit
+streamlit-cookies-controller
 google-genai
 python-docx
 python-pptx

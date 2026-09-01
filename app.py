@@ -314,6 +314,8 @@ with col_right:
     st.markdown("""
     - **Năng lực số:** Thông tư số 02/2025/TT-BGDĐT.
     - **Năng lực AI:** Quyết định số 2422/QĐ-BGDĐT.
+    -----------------------
+    - **Zalo: 0913117321**
     """)
 
 st.divider()

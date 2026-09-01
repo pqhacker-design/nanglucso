@@ -136,7 +136,7 @@ with st.expander("⚙️ **CẤU HÌNH HỆ THỐNG & KÍCH HOẠT BẢN QUYỀN
             if remaining_trials > 0:
                 st.info(f"🎁 Chế độ dùng thử: Còn **{remaining_trials}/{MAX_FREE_TRIALS}** lượt tích hợp miễn phí trên trình duyệt này.")
             else:
-                st.error("⛔ Đã hết 2 lượt dùng thử trên trình duyệt này! Vui lòng nhập đúng Tên tài khoản và Mật khẩu.")
+                st.error("⛔ Đã hết 2 lượt dùng thử! Vui lòng nhập đúng Tên tài khoản và Mật khẩu.")
 
     col_sub1, col_sub2 = st.columns(2)
     with col_sub1:
@@ -302,6 +302,10 @@ with col_left:
 with col_right:
     st.markdown("### ℹ️ Hướng dẫn & Chính sách sử dụng")
     st.markdown("""
+    - **Bước 1:** Nhập **API key** và bấm **Kiểm tra**
+    - **Bước 2:** Tải lên file KHBD **Word(.docx)** hoặc Bài giảng **PowerPoint(.pptx)**
+    - **Bước 3:** Bấm vào **Bắt đầu tích hợp**
+    -----------------------
     - **Dùng thử miễn phí:** Tối đa **2 lần** tích hợp trên mỗi trình duyệt.
     - **Bản quyền đầy đủ:** Nhập đúng **Tên tài khoản & Mật khẩu** được cấp để sử dụng không giới hạn.
     - **Lấy API Key:** Nhận miễn phí tại [Google AI Studio](https://aistudio.google.com/app/apikey).

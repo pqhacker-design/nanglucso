@@ -8,13 +8,13 @@ from pptx_processor import PPTXProcessor
 # --- CẤU HÌNH BẢN QUYỀN & GIỚI HẠN DÙNG THỬ ---
 VALID_ACCOUNTS = {
     "admin": "GIAOVIEN2026",
-    "thayhung": "123456",
+    "thayhung": "300506",
     "giaovien": "hoctap2026"
 }
 MAX_FREE_TRIALS = 2
 
 st.set_page_config(
-    page_title="Tích hợp Năng lực số & AI vào KHBD / PowerPoint",
+    page_title="Thầy Hùng - 0913117321",
     page_icon="📝",
     layout="wide"
 )
@@ -320,7 +320,11 @@ with col_left:
 with col_right:
     st.markdown("### ℹ️ Hướng dẫn & Chính sách sử dụng")
     st.markdown("""
-    - **Dùng thử miễn phí:** Tối đa **2 lần** trên mỗi trình duyệt.
+    - **Bước 1:** Nhập **API key** và bấm **Kiểm tra**
+    - **Bước 2:** Tải lên file KHBD **Word(.docx)** hoặc Bài giảng **PowerPoint(.pptx)**
+    - **Bước 3:** Bấm vào **Bắt đầu tích hợp**
+    -----------------------
+    - **Dùng thử miễn phí:** Tối đa **2 lần** tích hợp trên mỗi trình duyệt.
     - **Bản quyền đầy đủ:** Nhập đúng **Tên tài khoản & Mật khẩu** được cấp để sử dụng không giới hạn.
     - **Lấy API Key:** Nhận miễn phí tại [Google AI Studio](https://aistudio.google.com/app/apikey).
     """)
@@ -328,6 +332,9 @@ with col_right:
     st.markdown("""
     - **Năng lực số:** Thông tư số 02/2025/TT-BGDĐT.
     - **Năng lực AI:** Quyết định số 2422/QĐ-BGDĐT.
+    -----------------------
+    - **Zalo: 0913117321**
+    (Thời này không ai cho không ai cái gì bao giờ)
     """)
 
 st.divider()

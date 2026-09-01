@@ -1,16 +1,19 @@
+import time
 import streamlit as st
+from streamlit_cookies_controller import CookieController
 from google import genai
 from gemini_service import GeminiService
 from word_processor import WordProcessor
 from pptx_processor import PPTXProcessor
 
-# --- CẤU HÌNH BẢN QUYỀN / TÀI KHOẢN HỢP LỆ ---
+# --- CẤU HÌNH BẢN QUYỀN & GIỚI HẠN DÙNG THỬ ---
 VALID_ACCOUNTS = {
     "admin": "GIAOVIEN2026",
     "thayhung": "123456",
     "giaovien": "hoctap2026"
 }
 MAX_FREE_TRIALS = 2
+COOKIE_KEY = "user_khbd_trial_usage"
 
 st.set_page_config(
     page_title="Tích hợp Năng lực số & AI vào KHBD / PowerPoint",
@@ -18,7 +21,23 @@ st.set_page_config(
     layout="wide"
 )
 
-# CSS tùy chỉnh
+# Khởi tạo bộ điều khiển Cookie
+cookie_controller = CookieController()
+
+# Đọc số lượt dùng đã lưu từ Cookie trình duyệt
+cookie_val = cookie_controller.get(COOKIE_KEY)
+try:
+    current_usage = int(cookie_val) if cookie_val is not None else 0
+except (ValueError, TypeError):
+    current_usage = 0
+
+# Đồng bộ với session_state
+if "usage_count" not in st.session_state:
+    st.session_state["usage_count"] = current_usage
+else:
+    st.session_state["usage_count"] = max(st.session_state["usage_count"], current_usage)
+
+# CSS giao diện
 st.markdown(
     """
     <style>
@@ -45,10 +64,6 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-
-# Khởi tạo biến đếm lượt dùng thử trong session_state
-if "usage_count" not in st.session_state:
-    st.session_state["usage_count"] = 0
 
 st.markdown("## 🤖 Tích hợp Năng lực số và AI tự động vào KHBD / PowerPoint")
 st.info("Hỗ trợ tích hợp Năng lực số (Thông tư 02/2025/TT-BGDĐT) và Năng lực AI (QĐ 2422/QĐ-BGDĐT) vào file Word (.docx) hoặc Slide Notes của PowerPoint (.pptx).")
@@ -119,9 +134,9 @@ with st.expander("⚙️ **CẤU HÌNH HỆ THỐNG & KÍCH HOẠT BẢN QUYỀN
             st.success(f"🎉 Đã kích hoạt bản quyền đầy đủ (Tài khoản: **{input_user}**). Không giới hạn lượt dùng!")
         else:
             if remaining_trials > 0:
-                st.info(f"🎁 Chế độ dùng thử: Còn **{remaining_trials}/{MAX_FREE_TRIALS}** lượt tích hợp miễn phí.")
+                st.info(f"🎁 Chế độ dùng thử: Còn **{remaining_trials}/{MAX_FREE_TRIALS}** lượt tích hợp miễn phí trên trình duyệt này.")
             else:
-                st.error("⛔ Đã hết 2 lượt dùng thử! Vui lòng nhập đúng Tên tài khoản và Mật khẩu để tiếp tục sử dụng.")
+                st.error("⛔ Đã hết 2 lượt dùng thử trên trình duyệt này! Vui lòng nhập đúng Tên tài khoản và Mật khẩu.")
 
     col_sub1, col_sub2 = st.columns(2)
     with col_sub1:
@@ -168,7 +183,7 @@ with col_left:
             if st.button("🚀 Bắt đầu tích hợp", type="primary", use_container_width=True):
                 # 1. Kiểm tra quyền sử dụng
                 if not can_use_app:
-                    st.error("⛔ Bạn đã sử dụng hết 2 lượt dùng thử miễn phí. Vui lòng nhập đúng Tên tài khoản và Mật khẩu để tiếp tục.")
+                    st.error("⛔ Bạn đã sử dụng hết 2 lượt dùng thử. Vui lòng nhập đúng Tên tài khoản và Mật khẩu để tiếp tục.")
                     st.stop()
 
                 # 2. Kiểm tra API Key
@@ -213,14 +228,17 @@ with col_left:
                             processed_file = WordProcessor.integrate_digital_capacity(file_bytes, ai_result, integration_type)
                             st.session_state['processed_file'] = processed_file
                         
-                        # Tăng biến đếm nếu người dùng chưa đăng nhập bản quyền
+                        # Cập nhật số lượt vào Session State và ghi bền vững vào Cookie trình duyệt (hạn 365 ngày)
                         if not is_authenticated:
-                            st.session_state["usage_count"] += 1
+                            new_count = st.session_state["usage_count"] + 1
+                            st.session_state["usage_count"] = new_count
+                            cookie_controller.set(COOKIE_KEY, str(new_count), max_age=365*24*60*60)
 
                         progress_bar.progress(100, text="Hoàn tất xử lý!")
                         st.success("🎉 Tích hợp thành công!")
                         
-                        # Cập nhật lại giao diện để hiển thị số lượt còn lại
+                        # Cho cookie kịp đồng bộ trước khi refresh lại UI
+                        time.sleep(0.5)
                         st.rerun()
                         
                     except Exception as e:
@@ -284,8 +302,8 @@ with col_left:
 with col_right:
     st.markdown("### ℹ️ Hướng dẫn & Chính sách sử dụng")
     st.markdown("""
-    - **Dùng thử miễn phí:** Tối đa **2 lần** tích hợp cho người dùng mới.
-    - **Bản quyền đầy đủ:** Nhập đúng **Tên tài khoản & Mật khẩu** được cấp để sử dụng không giới hạn cả Word và PowerPoint.
+    - **Dùng thử miễn phí:** Tối đa **2 lần** tích hợp trên mỗi trình duyệt.
+    - **Bản quyền đầy đủ:** Nhập đúng **Tên tài khoản & Mật khẩu** được cấp để sử dụng không giới hạn.
     - **Lấy API Key:** Nhận miễn phí tại [Google AI Studio](https://aistudio.google.com/app/apikey).
     """)
     st.markdown("#### 📌 Khung năng lực áp dụng:")

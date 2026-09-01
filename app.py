@@ -72,7 +72,7 @@ st.info("Hỗ trợ tích hợp Năng lực số (Thông tư 02/2025/TT-BGDĐT) 
 with st.expander("⚙️ **CẤU HÌNH HỆ THỐNG & KÍCH HOẠT BẢN QUYỀN:**", expanded=True):
     col_cfg1, col_cfg2 = st.columns([1.1, 0.9])
     
-    with col_cfg1(border=True):
+    with col_cfg1:
         st.markdown(
             "🔑 **Google Gemini API Key:** "
             "([👉 Nhấn vào đây để lấy API Key miễn phí](https://aistudio.google.com/app/apikey))",

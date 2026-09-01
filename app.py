@@ -4,11 +4,16 @@ from gemini_service import GeminiService
 from word_processor import WordProcessor
 from pptx_processor import PPTXProcessor
 
-# Mật khẩu mở khóa tính năng PowerPoint (Bạn có thể đổi mật khẩu này tùy ý)
-PREMIUM_PASSWORD = "GIAOVIENTHCS@2026"
+# --- CẤU HÌNH BẢN QUYỀN / TÀI KHOẢN HỢP LỆ ---
+VALID_ACCOUNTS = {
+    "admin": "GIAOVIEN2026",
+    "thayhung": "123456",
+    "giaovien": "hoctap2026"
+}
+MAX_FREE_TRIALS = 2
 
 st.set_page_config(
-    page_title="Thầy Hùng - 0913117321",
+    page_title="Tích hợp Năng lực số & AI vào KHBD / PowerPoint",
     page_icon="📝",
     layout="wide"
 )
@@ -41,12 +46,16 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+# Khởi tạo biến đếm lượt dùng thử trong session_state
+if "usage_count" not in st.session_state:
+    st.session_state["usage_count"] = 0
+
 st.markdown("## 🤖 Tích hợp Năng lực số và AI tự động vào KHBD / PowerPoint")
 st.info("Hỗ trợ tích hợp Năng lực số (Thông tư 02/2025/TT-BGDĐT) và Năng lực AI (QĐ 2422/QĐ-BGDĐT) vào file Word (.docx) hoặc Slide Notes của PowerPoint (.pptx).")
 
-# --- CẤU HÌNH HỆ THỐNG ---
-with st.expander("⚙️ **CẤU HÌNH HỆ THỐNG & XÁC THỰC BẢN QUYỀN:**", expanded=True):
-    col_cfg1, col_cfg2 = st.columns([1, 1])
+# --- CẤU HÌNH HỆ THỐNG & TÀI KHOẢN ---
+with st.expander("⚙️ **CẤU HÌNH HỆ THỐNG & KÍCH HOẠT BẢN QUYỀN:**", expanded=True):
+    col_cfg1, col_cfg2 = st.columns([1.1, 0.9])
     
     with col_cfg1:
         st.markdown(
@@ -66,7 +75,7 @@ with st.expander("⚙️ **CẤU HÌNH HỆ THỐNG & XÁC THỰC BẢN QUYỀN:
                 label_visibility="collapsed"
             )
         with col_key_btn:
-            check_key_btn = st.button("Kiểm tra", type="primary", use_container_width=True)
+            check_key_btn = st.button("Kiểm tra", use_container_width=True)
 
         if api_key_input:
             st.session_state["gemini_api_key"] = api_key_input.strip()
@@ -74,40 +83,45 @@ with st.expander("⚙️ **CẤU HÌNH HỆ THỐNG & XÁC THỰC BẢN QUYỀN:
         else:
             api_key = ""
 
-        # Xử lý khi nhấn nút Kiểm tra API Key
         if check_key_btn:
             if not api_key:
                 st.warning("⚠️ Vui lòng dán mã API Key trước khi kiểm tra.")
             else:
-                try:
-                    client_test = genai.Client(api_key=api_key)
-                    # Gọi thử một câu lệnh tối thiểu để xác thực key
-                    client_test.models.generate_content(
-                        model="gemini-2.5-flash",
-                        contents="ping"
-                    )
-                    st.success("✅ API Key hợp lệ và sẵn sàng sử dụng!")
-                except Exception as ex:
-                    st.error(f"❌ API Key không hợp lệ hoặc đã hết hạn. Chi tiết lỗi: {str(ex)}")
+                with st.spinner("Đang kiểm tra kết nối API..."):
+                    try:
+                        client_test = genai.Client(api_key=api_key)
+                        client_test.models.generate_content(
+                            model="gemini-2.5-flash",
+                            contents="ping"
+                        )
+                        st.success("✅ Kết nối thành công! API Key hợp lệ.")
+                    except Exception as ex:
+                        msg_vi = GeminiService._format_api_error(ex)
+                        st.error(f"❌ Kết nối thất bại: {msg_vi}")
 
     with col_cfg2:
-        st.markdown("🔐 **Mật khẩu mở khóa tính năng nâng cao (PowerPoint):**")
-        input_password = st.text_input(
-            "Mật khẩu",
-            type="password",
-            placeholder="Nhập mật khẩu để mở khóa PPTX...",
-            label_visibility="collapsed"
+        st.markdown("🔐 **Đăng nhập bản quyền (Không giới hạn lượt dùng):**")
+        col_acc1, col_acc2 = st.columns(2)
+        with col_acc1:
+            input_user = st.text_input("Tên tài khoản", placeholder="Nhập tên tài khoản...", label_visibility="collapsed")
+        with col_acc2:
+            input_pwd = st.text_input("Mật khẩu", type="password", placeholder="Nhập mật khẩu...", label_visibility="collapsed")
+
+        # Kiểm tra trạng thái tài khoản
+        is_authenticated = (
+            input_user.strip() in VALID_ACCOUNTS and 
+            VALID_ACCOUNTS.get(input_user.strip()) == input_pwd.strip()
         )
-        
-        # Kiểm tra trạng thái mật khẩu
-        is_premium = (input_password == PREMIUM_PASSWORD)
-        if input_password:
-            if is_premium:
-                st.success("🎉 Mở khóa thành công! Cho phép tích hợp cả Word (.docx) và PowerPoint (.pptx).")
-            else:
-                st.error("❌ Mật khẩu chưa đúng. Hệ thống đang ở chế độ cơ bản (Chỉ tích hợp file Word .docx).")
+
+        remaining_trials = max(0, MAX_FREE_TRIALS - st.session_state["usage_count"])
+
+        if is_authenticated:
+            st.success(f"🎉 Đã kích hoạt bản quyền đầy đủ (Tài khoản: **{input_user}**). Không giới hạn lượt dùng!")
         else:
-            st.caption("ℹ️ *Chưa có mật khẩu: Chỉ hỗ trợ xử lý file Word (.docx).*")
+            if remaining_trials > 0:
+                st.info(f"🎁 Chế độ dùng thử: Còn **{remaining_trials}/{MAX_FREE_TRIALS}** lượt tích hợp miễn phí.")
+            else:
+                st.error("⛔ Đã hết 2 lượt dùng thử! Vui lòng nhập đúng Tên tài khoản và Mật khẩu để tiếp tục sử dụng.")
 
     col_sub1, col_sub2 = st.columns(2)
     with col_sub1:
@@ -121,8 +135,8 @@ with st.expander("⚙️ **CẤU HÌNH HỆ THỐNG & XÁC THỰC BẢN QUYỀN:
             ["Cả hai", "Năng lực số", "Năng lực AI"]
         )
 
-# Thiết lập định dạng file cho phép tải lên dựa theo trạng thái mật khẩu
-allowed_types = ["docx", "pptx"] if is_premium else ["docx"]
+# Quyết định quyền được phép chạy tiếp
+can_use_app = is_authenticated or (remaining_trials > 0)
 
 # --- MÀN HÌNH CHÍNH ---
 col_left, col_right = st.columns([2, 1])
@@ -138,11 +152,10 @@ with col_left:
             unsafe_allow_html=True
         )
         
-        help_text = "Hỗ trợ cả .docx và .pptx" if is_premium else "Chế độ cơ bản: Chỉ hỗ trợ tệp Word (.docx)."
         uploaded_file = st.file_uploader(
-            f"**Chọn file ({', '.join(allowed_types)}):**", 
-            type=allowed_types,
-            help=help_text
+            "**Chọn file Word (.docx) hoặc PowerPoint (.pptx):**", 
+            type=["docx", "pptx"],
+            help="Hệ thống hỗ trợ cả file Word (.docx) và Slide PowerPoint (.pptx)."
         )
 
         if uploaded_file is not None:
@@ -153,13 +166,14 @@ with col_left:
             st.session_state['file_ext'] = file_ext
             
             if st.button("🚀 Bắt đầu tích hợp", type="primary", use_container_width=True):
-                if not api_key:
-                    st.error("⚠️ Vui lòng nhập **Google Gemini API Key** ở khung cấu hình phía trên trước khi tiếp tục.")
+                # 1. Kiểm tra quyền sử dụng
+                if not can_use_app:
+                    st.error("⛔ Bạn đã sử dụng hết 2 lượt dùng thử miễn phí. Vui lòng nhập đúng Tên tài khoản và Mật khẩu để tiếp tục.")
                     st.stop()
 
-                # Kiểm tra bảo mật nếu file là PowerPoint
-                if file_ext == "pptx" and not is_premium:
-                    st.error("⛔ Bạn cần nhập đúng mật khẩu kích hoạt để sử dụng tính năng tích hợp PowerPoint.")
+                # 2. Kiểm tra API Key
+                if not api_key:
+                    st.error("⚠️ Vui lòng nhập **Google Gemini API Key** ở khung cấu hình phía trên trước khi tiếp tục.")
                     st.stop()
 
                 with st.spinner("🔄 Đang phân tích dữ liệu và tích hợp năng lực..."):
@@ -167,7 +181,6 @@ with col_left:
                         ai_handler = GeminiService(api_key=api_key)
                         
                         if file_ext == "pptx":
-                            # Luồng xử lý file PowerPoint
                             progress_bar = st.progress(20, text="Đang trích xuất nội dung các Slide...")
                             slides_data = PPTXProcessor.extract_slides_text(file_bytes)
                             
@@ -185,7 +198,6 @@ with col_left:
                             st.session_state['processed_file'] = processed_file
                             
                         else:
-                            # Luồng xử lý file Word
                             progress_bar = st.progress(20, text="Đang đọc nội dung file Word...")
                             doc_text = WordProcessor.extract_text(file_bytes)
                             
@@ -201,8 +213,15 @@ with col_left:
                             processed_file = WordProcessor.integrate_digital_capacity(file_bytes, ai_result, integration_type)
                             st.session_state['processed_file'] = processed_file
                         
+                        # Tăng biến đếm nếu người dùng chưa đăng nhập bản quyền
+                        if not is_authenticated:
+                            st.session_state["usage_count"] += 1
+
                         progress_bar.progress(100, text="Hoàn tất xử lý!")
                         st.success("🎉 Tích hợp thành công!")
+                        
+                        # Cập nhật lại giao diện để hiển thị số lượt còn lại
+                        st.rerun()
                         
                     except Exception as e:
                         st.error(f"❌ Đã xảy ra lỗi trong quá trình xử lý: {str(e)}")
@@ -263,13 +282,11 @@ with col_left:
             )
 
 with col_right:
-    st.markdown("### ℹ️ Hướng dẫn sử dụng")
+    st.markdown("### ℹ️ Hướng dẫn & Chính sách sử dụng")
     st.markdown("""
-    - **Bước 1:** Nhận API Key tại link [Google AI Studio](https://aistudio.google.com/app/apikey) và dán vào ô nhập.
-    - **Bước 2:** Bấm **"Kiểm tra"** để xác minh API Key.
-    - **Bước 3:** Nhập mật khẩu nếu muốn sử dụng tính năng tích hợp vào **Slide Note** của PowerPoint.
-    - **Bước 4:** Tải file lên, chọn cấp học và nhấn **"Bắt đầu tích hợp"**.
-    - **Zalo: 0913117321**
+    - **Dùng thử miễn phí:** Tối đa **2 lần** tích hợp cho người dùng mới.
+    - **Bản quyền đầy đủ:** Nhập đúng **Tên tài khoản & Mật khẩu** được cấp để sử dụng không giới hạn cả Word và PowerPoint.
+    - **Lấy API Key:** Nhận miễn phí tại [Google AI Studio](https://aistudio.google.com/app/apikey).
     """)
     st.markdown("#### 📌 Khung năng lực áp dụng:")
     st.markdown("""
@@ -280,7 +297,7 @@ with col_right:
 st.divider()
 col_left_f, col_right_f = st.columns(2)
 with col_left_f:
-    st.caption("Phát triển bởi Ngo Thanh Hung © 2026 - THCS Bình San - Hà Tiên - AG")
+    st.caption("Phát triển bởi Ngo Thanh Hung © 2026")
 with col_right_f:
     st.markdown(
         "<div style='text-align: right; color: gray; font-size: 0.85em;'>"

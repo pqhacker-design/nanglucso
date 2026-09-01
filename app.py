@@ -9,7 +9,8 @@ from pptx_processor import PPTXProcessor
 VALID_ACCOUNTS = {
     "admin": "GIAOVIEN2026",
     "thayhung": "300506",
-    "giaovien": "hoctap2026"
+    "giaovien": "hoctap2026",
+    "giangcoi": "giangcoi123"
 }
 MAX_FREE_TRIALS = 2
 

@@ -339,9 +339,22 @@ with col_right:
     """)
 
 st.divider()
-col_left_f, col_right_f = st.columns(2)
+col_left_f, col_mid_f, col_right_f = st.columns([1.2, 1, 1])
+
 with col_left_f:
     st.caption("Phát triển bởi Ngo Thanh Hung © 2026")
+
+with col_mid_f:
+    # Bộ đếm lượt truy cập sử dụng Hits Counter SVG (tự động tăng mỗi khi có người vào trang)
+    st.markdown(
+        """
+        <div style='text-align: center;'>
+            <img src="https://hits.sh/tich-hop-nang-luc-so-khbd.page.counter.svg?style=flat-square&label=L%C6%B0%E1%BB%A3t+truy+c%E1%BA%ADp&color=0284c7&labelColor=334155" alt="Lượt truy cập" />
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
 with col_right_f:
     st.markdown(
         "<div style='text-align: right; color: gray; font-size: 0.85em;'>"

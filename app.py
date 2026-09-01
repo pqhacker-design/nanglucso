@@ -334,7 +334,7 @@ with col_right:
     - **Năng lực AI:** Quyết định số 2422/QĐ-BGDĐT.
     -----------------------
     - **Zalo: 0913117321**
-    (Thời này không ai cho không ai cái gì bao giờ)
+    (Phí ủng hộ cho người làm app là 1 lon Bivina Đảo Ngọc)
     """)
 
 st.divider()

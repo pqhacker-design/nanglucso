@@ -316,7 +316,7 @@ with col_right:
     - **Năng lực AI:** Quyết định số 2422/QĐ-BGDĐT.
     -----------------------
     - **Zalo: 0913117321**
-    (Tiền bạc là vật ngoài thân, có cũng được, không có cũng không được)
+    (Thời này không ai cho không ai cái gì bao giờ)
     """)
 
 st.divider()

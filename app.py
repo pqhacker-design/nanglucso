@@ -1,6 +1,5 @@
-import time
 import streamlit as st
-from streamlit_cookies_controller import CookieController
+import streamlit.components.v1 as components
 from google import genai
 from gemini_service import GeminiService
 from word_processor import WordProcessor
@@ -9,35 +8,58 @@ from pptx_processor import PPTXProcessor
 # --- CẤU HÌNH BẢN QUYỀN & GIỚI HẠN DÙNG THỬ ---
 VALID_ACCOUNTS = {
     "admin": "GIAOVIEN2026",
-    "thayhung": "300506",
+    "thayhung": "123456",
     "giaovien": "hoctap2026"
 }
 MAX_FREE_TRIALS = 2
-COOKIE_KEY = "user_khbd_trial_usage"
 
 st.set_page_config(
-    page_title="Thầy Hùng - 0913117321",
+    page_title="Tích hợp Năng lực số & AI vào KHBD / PowerPoint",
     page_icon="📝",
     layout="wide"
 )
 
-# Khởi tạo bộ điều khiển Cookie
-cookie_controller = CookieController()
-
-# Đọc số lượt dùng đã lưu từ Cookie trình duyệt
-cookie_val = cookie_controller.get(COOKIE_KEY)
+# 1. Đọc số lượt dùng từ Query Params (do LocalStorage đồng bộ lên)
+params = st.query_params
 try:
-    current_usage = int(cookie_val) if cookie_val is not None else 0
+    param_usage = int(params.get("t_used", 0))
 except (ValueError, TypeError):
-    current_usage = 0
+    param_usage = 0
 
-# Đồng bộ với session_state
 if "usage_count" not in st.session_state:
-    st.session_state["usage_count"] = current_usage
+    st.session_state["usage_count"] = param_usage
 else:
-    st.session_state["usage_count"] = max(st.session_state["usage_count"], current_usage)
+    st.session_state["usage_count"] = max(st.session_state["usage_count"], param_usage)
 
-# CSS giao diện
+# 2. JavaScript ngầm đồng bộ cứng vào LocalStorage của trình duyệt
+components.html(
+    f"""
+    <script>
+    (function() {{
+        const KEY = "khbd_trial_usage_v1";
+        let stored = localStorage.getItem(KEY);
+        let currentStored = stored ? parseInt(stored) : 0;
+        let serverVal = {st.session_state["usage_count"]};
+        
+        if (serverVal > currentStored) {{
+            localStorage.setItem(KEY, serverVal);
+            currentStored = serverVal;
+        }}
+
+        const urlParams = new URLSearchParams(window.parent.location.search);
+        if (urlParams.get("t_used") !== currentStored.toString()) {{
+            urlParams.set("t_used", currentStored);
+            window.parent.history.replaceState(null, '', '?' + urlParams.toString());
+            window.parent.location.reload();
+        }}
+    }})();
+    </script>
+    """,
+    height=0,
+    width=0
+)
+
+# CSS tùy chỉnh
 st.markdown(
     """
     <style>
@@ -122,7 +144,7 @@ with st.expander("⚙️ **CẤU HÌNH HỆ THỐNG & KÍCH HOẠT BẢN QUYỀN
         with col_acc2:
             input_pwd = st.text_input("Mật khẩu", type="password", placeholder="Nhập mật khẩu...", label_visibility="collapsed")
 
-        # Kiểm tra trạng thái tài khoản
+        # Xác thực tài khoản
         is_authenticated = (
             input_user.strip() in VALID_ACCOUNTS and 
             VALID_ACCOUNTS.get(input_user.strip()) == input_pwd.strip()
@@ -131,12 +153,12 @@ with st.expander("⚙️ **CẤU HÌNH HỆ THỐNG & KÍCH HOẠT BẢN QUYỀN
         remaining_trials = max(0, MAX_FREE_TRIALS - st.session_state["usage_count"])
 
         if is_authenticated:
-            st.success(f"🎉 Đã kích hoạt bản quyền đầy đủ (Tài khoản: **{input_user}**). Không giới hạn lượt dùng!")
+            st.success(f"🎉 Đã kích hoạt bản quyền (Tài khoản: **{input_user}**). Không giới hạn lượt dùng!")
         else:
             if remaining_trials > 0:
-                st.info(f"🎁 Chế độ dùng thử: Còn **{remaining_trials}/{MAX_FREE_TRIALS}** lượt tích hợp miễn phí trên trình duyệt này.")
+                st.info(f"🎁 Dùng thử: Còn **{remaining_trials}/{MAX_FREE_TRIALS}** lượt trên trình duyệt này.")
             else:
-                st.error("⛔ Đã hết 2 lượt dùng thử! Vui lòng nhập đúng Tên tài khoản và Mật khẩu.")
+                st.error("⛔ Đã hết 2 lượt dùng thử! Vui lòng nhập Tên tài khoản và Mật khẩu.")
 
     col_sub1, col_sub2 = st.columns(2)
     with col_sub1:
@@ -183,7 +205,7 @@ with col_left:
             if st.button("🚀 Bắt đầu tích hợp", type="primary", use_container_width=True):
                 # 1. Kiểm tra quyền sử dụng
                 if not can_use_app:
-                    st.error("⛔ Bạn đã sử dụng hết 2 lượt dùng thử. Vui lòng nhập đúng Tên tài khoản và Mật khẩu để tiếp tục.")
+                    st.error("⛔ Bạn đã sử dụng hết 2 lượt dùng thử. Vui lòng đăng nhập tài khoản để tiếp tục.")
                     st.stop()
 
                 # 2. Kiểm tra API Key
@@ -228,17 +250,13 @@ with col_left:
                             processed_file = WordProcessor.integrate_digital_capacity(file_bytes, ai_result, integration_type)
                             st.session_state['processed_file'] = processed_file
                         
-                        # Cập nhật số lượt vào Session State và ghi bền vững vào Cookie trình duyệt (hạn 365 ngày)
+                        # Cập nhật số lượt dùng thử và lưu cứng vào LocalStorage qua query_params
                         if not is_authenticated:
-                            new_count = st.session_state["usage_count"] + 1
-                            st.session_state["usage_count"] = new_count
-                            cookie_controller.set(COOKIE_KEY, str(new_count), max_age=365*24*60*60)
+                            st.session_state["usage_count"] += 1
+                            st.query_params["t_used"] = str(st.session_state["usage_count"])
 
                         progress_bar.progress(100, text="Hoàn tất xử lý!")
                         st.success("🎉 Tích hợp thành công!")
-                        
-                        # Cho cookie kịp đồng bộ trước khi refresh lại UI
-                        time.sleep(0.5)
                         st.rerun()
                         
                     except Exception as e:
@@ -302,11 +320,7 @@ with col_left:
 with col_right:
     st.markdown("### ℹ️ Hướng dẫn & Chính sách sử dụng")
     st.markdown("""
-    - **Bước 1:** Nhập **API key** và bấm **Kiểm tra**
-    - **Bước 2:** Tải lên file KHBD **Word(.docx)** hoặc Bài giảng **PowerPoint(.pptx)**
-    - **Bước 3:** Bấm vào **Bắt đầu tích hợp**
-    -----------------------
-    - **Dùng thử miễn phí:** Tối đa **2 lần** tích hợp trên mỗi trình duyệt.
+    - **Dùng thử miễn phí:** Tối đa **2 lần** trên mỗi trình duyệt.
     - **Bản quyền đầy đủ:** Nhập đúng **Tên tài khoản & Mật khẩu** được cấp để sử dụng không giới hạn.
     - **Lấy API Key:** Nhận miễn phí tại [Google AI Studio](https://aistudio.google.com/app/apikey).
     """)
@@ -314,9 +328,6 @@ with col_right:
     st.markdown("""
     - **Năng lực số:** Thông tư số 02/2025/TT-BGDĐT.
     - **Năng lực AI:** Quyết định số 2422/QĐ-BGDĐT.
-    -----------------------
-    - **Zalo: 0913117321**
-    (Thời này không ai cho không ai cái gì bao giờ)
     """)
 
 st.divider()

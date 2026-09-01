@@ -16,7 +16,7 @@ MAX_FREE_TRIALS = 2
 COOKIE_KEY = "user_khbd_trial_usage"
 
 st.set_page_config(
-    page_title="Tích hợp Năng lực số & AI vào KHBD / PowerPoint",
+    page_title="Thầy Hùng - 0913117321",
     page_icon="📝",
     layout="wide"
 )
@@ -316,6 +316,7 @@ with col_right:
     - **Năng lực AI:** Quyết định số 2422/QĐ-BGDĐT.
     -----------------------
     - **Zalo: 0913117321**
+    (Tiền bạc là vật ngoài thân, có cũng được, không có cũng không được)
     """)
 
 st.divider()

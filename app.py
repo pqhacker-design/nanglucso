@@ -335,6 +335,7 @@ with col_right:
     - **Năng lực AI:** Quyết định số 2422/QĐ-BGDĐT.
     -----------------------
     - **Zalo: 0913117321**
+    (Cái gì cũng có cái giá của nó)
     """)
 
 st.divider()

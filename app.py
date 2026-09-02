@@ -12,7 +12,7 @@ VALID_ACCOUNTS = {
     "giaovien": "hoctap2026",
     "giangcoi": "giangcoi123"
 }
-MAX_FREE_TRIALS = 2
+MAX_FREE_TRIALS = 1
 
 st.set_page_config(
     page_title="Thầy Hùng - 0913117321",
@@ -335,7 +335,6 @@ with col_right:
     - **Năng lực AI:** Quyết định số 2422/QĐ-BGDĐT.
     -----------------------
     - **Zalo: 0913117321**
-    (Phí ủng hộ cho người làm app là 1 lon Bivina Đảo Ngọc)
     """)
 
 st.divider()

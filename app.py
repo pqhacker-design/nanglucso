@@ -113,7 +113,7 @@ with st.expander("⚙️ **CẤU HÌNH HỆ THỐNG & KÍCH HOẠT BẢN QUYỀN
                 label_visibility="collapsed"
             )
         with col_key_btn:
-            check_key_btn = st.button("Kiểm tra", use_container_width=True)
+            check_key_btn = st.button("Kiểm tra", type="primary", use_container_width=True)
 
         if api_key_input:
             st.session_state["gemini_api_key"] = api_key_input.strip()
@@ -159,7 +159,7 @@ with st.expander("⚙️ **CẤU HÌNH HỆ THỐNG & KÍCH HOẠT BẢN QUYỀN
             if remaining_trials > 0:
                 st.info(f"🎁 Dùng thử: Còn **{remaining_trials}/{MAX_FREE_TRIALS}** lượt trên trình duyệt này.")
             else:
-                st.error("⛔ Đã hết 2 lượt dùng thử! Vui lòng nhập Tên tài khoản và Mật khẩu.")
+                st.error("⛔ Đã hết lượt dùng thử! Vui lòng nhập Tên tài khoản và Mật khẩu.")
 
     col_sub1, col_sub2 = st.columns(2)
     with col_sub1:
@@ -206,7 +206,7 @@ with col_left:
             if st.button("🚀 Bắt đầu tích hợp", type="primary", use_container_width=True):
                 # 1. Kiểm tra quyền sử dụng
                 if not can_use_app:
-                    st.error("⛔ Bạn đã sử dụng hết 2 lượt dùng thử. Vui lòng đăng nhập tài khoản để tiếp tục.")
+                    st.error("⛔ Bạn đã sử dụng hết lượt dùng thử. Vui lòng đăng nhập tài khoản để tiếp tục.")
                     st.stop()
 
                 # 2. Kiểm tra API Key

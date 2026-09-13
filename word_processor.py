@@ -9,12 +9,9 @@ from docx.text.paragraph import Paragraph
 class WordProcessor:
     @staticmethod
     def _clean_str(text: str) -> str:
-        """Chuẩn hóa chuỗi: bỏ khoảng trắng thừa, ký tự đặc biệt để so khớp chính xác hơn."""
         if not text:
             return ""
-        # Thay thế ký tự khoảng trắng đặc biệt thành dấu cách chuẩn
         text = text.replace('\xa0', ' ').replace('\t', ' ').replace('\r', '')
-        # Bỏ các ký tự markdown nếu AI vô tình thêm vào
         text = re.sub(r'[*_#`]', '', text)
         return re.sub(r'\s+', ' ', text).strip().lower()
 
@@ -35,7 +32,6 @@ class WordProcessor:
 
     @staticmethod
     def insert_paragraph_after(paragraph, text, color_rgb, prefix=""):
-        """Chèn đoạn văn mới liền sau paragraph chỉ định."""
         new_p = OxmlElement('w:p')
         paragraph._p.addnext(new_p)
         new_para = Paragraph(new_p, paragraph._parent)
@@ -43,7 +39,6 @@ class WordProcessor:
         new_para.paragraph_format.space_after = Pt(4)
         new_para.paragraph_format.line_spacing = 1.15
         
-        # Thêm tiền tố in đậm nhẹ
         if prefix:
             run_p = new_para.add_run(f"{prefix} ")
             run_p.font.color.rgb = color_rgb
@@ -62,10 +57,11 @@ class WordProcessor:
         doc = Document(io.BytesIO(file_bytes))
         sua_doi_list = ai_data.get('sua_doi', [])
         
+        # Bảng màu đại diện từng phân hệ
         color_digital = RGBColor(0, 102, 204)   # Xanh dương
         color_ai = RGBColor(214, 107, 0)        # Vàng cam
+        color_stem = RGBColor(16, 124, 65)      # Xanh lá cây (STEM)
         
-        # Thu thập toàn bộ paragraphs từ cả văn bản chính và các bảng
         all_paragraphs = list(doc.paragraphs)
         for table in doc.tables:
             for row in table.rows:
@@ -84,33 +80,37 @@ class WordProcessor:
                 continue
             
             clean_anchor = WordProcessor._clean_str(raw_anchor)
-            prefix = "[Năng lực AI]:" if loai == "Năng lực AI" else "[Năng lực số]:"
-            color = color_ai if loai == "Năng lực AI" else color_digital
+            
+            if loai == "Giáo dục STEM":
+                prefix = "[Giáo dục STEM]:"
+                color = color_stem
+            elif loai == "Năng lực AI":
+                prefix = "[Năng lực AI]:"
+                color = color_ai
+            else:
+                prefix = "[Năng lực số]:"
+                color = color_digital
             
             inserted = False
             best_match_para = None
             best_ratio = 0.0
 
-            # BƯỚC 1: Tìm kiếm chính xác hoặc chứa chuỗi (Sub-string match)
             for para in all_paragraphs:
                 clean_p_text = WordProcessor._clean_str(para.text)
                 if not clean_p_text:
                     continue
                 
-                # Kiểm tra chuỗi chứa nhau
                 if (clean_anchor in clean_p_text or clean_p_text in clean_anchor) and para not in used_paragraphs:
                     WordProcessor.insert_paragraph_after(para, content, color, prefix)
                     used_paragraphs.add(para)
                     inserted = True
                     break
                 
-                # Tính toán độ tương đồng phòng khi không khớp 100%
                 ratio = SequenceMatcher(None, clean_anchor, clean_p_text).ratio()
                 if ratio > best_ratio:
                     best_ratio = ratio
                     best_match_para = para
 
-            # BƯỚC 2: Fallback - Nếu không khớp tuyệt đối, chèn vào đoạn có độ tương đồng cao nhất (>= 55%)
             if not inserted and best_match_para is not None and best_ratio >= 0.55:
                 if best_match_para not in used_paragraphs:
                     WordProcessor.insert_paragraph_after(best_match_para, content, color, prefix)

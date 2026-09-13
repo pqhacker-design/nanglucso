@@ -5,22 +5,19 @@ from gemini_service import GeminiService
 from word_processor import WordProcessor
 from pptx_processor import PPTXProcessor
 
-# --- CẤU HÌNH BẢN QUYỀN & GIỚI HẠN DÙNG THỬ ---
 VALID_ACCOUNTS = {
     "admin": "GIAOVIEN2026",
-    "thayhung": "300506",
-    "giaovien": "hoctap2026",
-    "giangcoi": "giangcoi123"
+    "thayhung": "123456",
+    "giaovien": "hoctap2026"
 }
-MAX_FREE_TRIALS = 1
+MAX_FREE_TRIALS = 2
 
 st.set_page_config(
-    page_title="Thầy Hùng - 0913117321",
+    page_title="Tích hợp Năng lực số, AI & STEM",
     page_icon="📝",
     layout="wide"
 )
 
-# 1. Đọc số lượt dùng từ Query Params (do LocalStorage đồng bộ lên)
 params = st.query_params
 try:
     param_usage = int(params.get("t_used", 0))
@@ -32,7 +29,6 @@ if "usage_count" not in st.session_state:
 else:
     st.session_state["usage_count"] = max(st.session_state["usage_count"], param_usage)
 
-# 2. JavaScript ngầm đồng bộ cứng vào LocalStorage của trình duyệt
 components.html(
     f"""
     <script>
@@ -60,7 +56,6 @@ components.html(
     width=0
 )
 
-# CSS tùy chỉnh
 st.markdown(
     """
     <style>
@@ -88,8 +83,8 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.markdown("## 🤖 Tích hợp Năng lực số và AI tự động vào KHBD / PowerPoint")
-st.info("Hỗ trợ tích hợp Năng lực số (Thông tư 02/2025/TT-BGDĐT) và Năng lực AI (QĐ 2422/QĐ-BGDĐT) vào file Word (.docx) hoặc Slide Notes của PowerPoint (.pptx).")
+st.markdown("## 🤖 Tích hợp Năng lực số, AI và STEM vào Giáo án / PowerPoint")
+st.info("Chuẩn hóa theo Thông tư 02/2025/TT-BGDĐT (Năng lực số), Quyết định 2422/QĐ-BGDĐT (AI) và Công văn 3089/909/BGDĐT (Giáo dục STEM).")
 
 # --- CẤU HÌNH HỆ THỐNG & TÀI KHOẢN ---
 with st.expander("⚙️ **CẤU HÌNH HỆ THỐNG & KÍCH HOẠT BẢN QUYỀN:**", expanded=True):
@@ -113,7 +108,7 @@ with st.expander("⚙️ **CẤU HÌNH HỆ THỐNG & KÍCH HOẠT BẢN QUYỀN
                 label_visibility="collapsed"
             )
         with col_key_btn:
-            check_key_btn = st.button("Kiểm tra", type="primary", use_container_width=True)
+            check_key_btn = st.button("Kiểm tra", use_container_width=True)
 
         if api_key_input:
             st.session_state["gemini_api_key"] = api_key_input.strip()
@@ -145,7 +140,6 @@ with st.expander("⚙️ **CẤU HÌNH HỆ THỐNG & KÍCH HOẠT BẢN QUYỀN
         with col_acc2:
             input_pwd = st.text_input("Mật khẩu", type="password", placeholder="Nhập mật khẩu...", label_visibility="collapsed")
 
-        # Xác thực tài khoản
         is_authenticated = (
             input_user.strip() in VALID_ACCOUNTS and 
             VALID_ACCOUNTS.get(input_user.strip()) == input_pwd.strip()
@@ -159,7 +153,7 @@ with st.expander("⚙️ **CẤU HÌNH HỆ THỐNG & KÍCH HOẠT BẢN QUYỀN
             if remaining_trials > 0:
                 st.info(f"🎁 Dùng thử: Còn **{remaining_trials}/{MAX_FREE_TRIALS}** lượt trên trình duyệt này.")
             else:
-                st.error("⛔ Đã hết lượt dùng thử! Vui lòng nhập Tên tài khoản và Mật khẩu.")
+                st.error("⛔ Đã hết 2 lượt dùng thử! Vui lòng đăng nhập tài khoản.")
 
     col_sub1, col_sub2 = st.columns(2)
     with col_sub1:
@@ -170,13 +164,11 @@ with st.expander("⚙️ **CẤU HÌNH HỆ THỐNG & KÍCH HOẠT BẢN QUYỀN
     with col_sub2:
         integration_type = st.selectbox(
             "**Loại tích hợp:**",
-            ["Cả hai", "Năng lực số", "Năng lực AI"]
+            ["Tất cả", "Giáo dục STEM", "Năng lực số", "Năng lực AI"]
         )
 
-# Quyết định quyền được phép chạy tiếp
 can_use_app = is_authenticated or (remaining_trials > 0)
 
-# --- MÀN HÌNH CHÍNH ---
 col_left, col_right = st.columns([2, 1])
 
 with col_left:
@@ -193,7 +185,7 @@ with col_left:
         uploaded_file = st.file_uploader(
             "**Chọn file Word (.docx) hoặc PowerPoint (.pptx):**", 
             type=["docx", "pptx"],
-            help="Hệ thống hỗ trợ cả file Word (.docx) và Slide PowerPoint (.pptx)."
+            help="Hệ thống tự động phân loại tệp Word (.docx) và Slide PowerPoint (.pptx)."
         )
 
         if uploaded_file is not None:
@@ -204,22 +196,20 @@ with col_left:
             st.session_state['file_ext'] = file_ext
             
             if st.button("🚀 Bắt đầu tích hợp", type="primary", use_container_width=True):
-                # 1. Kiểm tra quyền sử dụng
                 if not can_use_app:
-                    st.error("⛔ Bạn đã sử dụng hết lượt dùng thử. Vui lòng đăng nhập tài khoản để tiếp tục.")
+                    st.error("⛔ Bạn đã dùng hết 2 lượt miễn phí. Vui lòng đăng nhập tài khoản.")
                     st.stop()
 
-                # 2. Kiểm tra API Key
                 if not api_key:
-                    st.error("⚠️ Vui lòng nhập **Google Gemini API Key** ở khung cấu hình phía trên trước khi tiếp tục.")
+                    st.error("⚠️ Vui lòng nhập API Key trước khi thực hiện.")
                     st.stop()
 
-                with st.spinner("🔄 Đang phân tích dữ liệu và tích hợp năng lực..."):
+                with st.spinner("🔄 Đang phân tích chuyên sâu và tích hợp nội dung..."):
                     try:
                         ai_handler = GeminiService(api_key=api_key)
                         
                         if file_ext == "pptx":
-                            progress_bar = st.progress(20, text="Đang trích xuất nội dung các Slide...")
+                            progress_bar = st.progress(20, text="Đang đọc nội dung các Slide...")
                             slides_data = PPTXProcessor.extract_slides_text(file_bytes)
                             
                             if not slides_data:
@@ -243,7 +233,7 @@ with col_left:
                                 st.error("❌ File Word trống hoặc không tìm thấy nội dung hợp lệ.")
                                 st.stop()
                                 
-                            progress_bar.progress(50, text="AI đang phân tích và thiết kế nội dung tích hợp...")
+                            progress_bar.progress(50, text="AI đang thiết kế nội dung tích hợp chuẩn mực...")
                             ai_result = ai_handler.analyze_and_integrate(doc_text, cap_hoc, integration_type)
                             st.session_state['ai_result'] = ai_result
                             
@@ -251,7 +241,6 @@ with col_left:
                             processed_file = WordProcessor.integrate_digital_capacity(file_bytes, ai_result, integration_type)
                             st.session_state['processed_file'] = processed_file
                         
-                        # Cập nhật số lượt dùng thử và lưu cứng vào LocalStorage qua query_params
                         if not is_authenticated:
                             st.session_state["usage_count"] += 1
                             st.query_params["t_used"] = str(st.session_state["usage_count"])
@@ -261,9 +250,8 @@ with col_left:
                         st.rerun()
                         
                     except Exception as e:
-                        st.error(f"❌ Đã xảy ra lỗi trong quá trình xử lý: {str(e)}")
+                        st.error(f"❌ Đã xảy ra lỗi: {str(e)}")
 
-    # --- Hiển thị kết quả và nút tải xuống ---
     if 'ai_result' in st.session_state and 'processed_file' in st.session_state:
         with st.container(border=True):
             st.markdown(
@@ -284,8 +272,16 @@ with col_left:
                 for idx, item in enumerate(sua_doi_list):
                     content = item.get('insert_content', 'Không có nội dung')
                     loai = item.get('loai', 'Năng lực số')
-                    icon = "🧠" if loai == "Năng lực AI" else "💻"
-                    color = "#D97706" if loai == "Năng lực AI" else "#0066CC"
+                    
+                    if loai == "Giáo dục STEM":
+                        icon = "🌱"
+                        color = "#107C41"
+                    elif loai == "Năng lực AI":
+                        icon = "🧠"
+                        color = "#D97706"
+                    else:
+                        icon = "💻"
+                        color = "#0066CC"
                     
                     if file_ext == "pptx":
                         slide_num = item.get('slide_number', 'Chưa rõ')
@@ -298,7 +294,6 @@ with col_left:
                             st.markdown(f"**Nội dung chèn:** <span style='color:{color}; font-weight:bold;'>{content}</span>", unsafe_allow_html=True)
             
             st.markdown("---")
-            
             orig_name = st.session_state.get('original_filename', 'KHBD_TichHop')
             base_name = orig_name.rsplit('.', 1)[0]
             
@@ -306,7 +301,7 @@ with col_left:
                 download_filename = f"{base_name}_TichHop_Notes.pptx"
                 mime_type = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
             else:
-                download_filename = f"{base_name}_Tichhop_So_AI.docx"
+                download_filename = f"{base_name}_Tichhop_Chuan.docx"
                 mime_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             
             st.download_button(
@@ -319,23 +314,17 @@ with col_left:
             )
 
 with col_right:
-    st.markdown("### ℹ️ Hướng dẫn & Chính sách sử dụng")
+    st.markdown("### ℹ️ Hướng dẫn & Chính sách")
     st.markdown("""
-    - **Bước 1:** Nhập **API key** và bấm **Kiểm tra**
-    - **Bước 2:** Tải lên file KHBD **Word(.docx)** hoặc Bài giảng **PowerPoint(.pptx)**
-    - **Bước 3:** Bấm vào **Bắt đầu tích hợp**
-    -----------------------
-    - **Dùng thử miễn phí:** Tối đa **2 lần** tích hợp trên mỗi trình duyệt.
-    - **Bản quyền đầy đủ:** Nhập đúng **Tên tài khoản & Mật khẩu** được cấp để sử dụng không giới hạn.
-    - **Lấy API Key:** Nhận miễn phí tại [Google AI Studio](https://aistudio.google.com/app/apikey).
+    - **Lựa chọn đa dạng:** Tích hợp chuyên biệt hoặc kết hợp cả 3 nhóm **STEM**, **Năng lực số**, **Năng lực AI**.
+    - **Dùng thử miễn phí:** Tối đa **2 lần** trên mỗi trình duyệt.
+    - **Bản quyền đầy đủ:** Nhập đúng **Tên tài khoản & Mật khẩu** được cấp để dùng không giới hạn.
     """)
-    st.markdown("#### 📌 Khung năng lực áp dụng:")
+    st.markdown("#### 📌 Khung chuẩn tham chiếu:")
     st.markdown("""
-    - **Năng lực số:** Thông tư số 02/2025/TT-BGDĐT.
-    - **Năng lực AI:** Quyết định số 2422/QĐ-BGDĐT.
-    -----------------------
-    - **Zalo: 0913117321**
-    (Cái gì cũng có cái giá của nó)
+    - **Giáo dục STEM:** Công văn 3089/BGDĐT-GDTrH & 909/BGDĐT-GDTH.
+    - **Năng lực số:** Thông tư 02/2025/TT-BGDĐT.
+    - **Năng lực AI:** Quyết định 2422/QĐ-BGDĐT.
     """)
 
 st.divider()
@@ -345,7 +334,6 @@ with col_left_f:
     st.caption("Phát triển bởi Ngo Thanh Hung © 2026")
 
 with col_mid_f:
-    # Bộ đếm lượt truy cập sử dụng Hits Counter SVG (tự động tăng mỗi khi có người vào trang)
     st.markdown(
         """
         <div style='text-align: center;'>

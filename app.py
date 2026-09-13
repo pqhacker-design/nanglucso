@@ -140,20 +140,29 @@ with st.expander("⚙️ **CẤU HÌNH HỆ THỐNG & KÍCH HOẠT BẢN QUYỀN
         with col_acc2:
             input_pwd = st.text_input("Mật khẩu", type="password", placeholder="Nhập mật khẩu...", label_visibility="collapsed")
 
+        # Chuẩn hóa chuỗi nhập
+        user_clean = input_user.strip()
+        pwd_clean = input_pwd.strip()
+
+        # Kiểm tra tính hợp lệ
         is_authenticated = (
-            input_user.strip() in VALID_ACCOUNTS and 
-            VALID_ACCOUNTS.get(input_user.strip()) == input_pwd.strip()
+            user_clean in VALID_ACCOUNTS and 
+            VALID_ACCOUNTS.get(user_clean) == pwd_clean
         )
 
         remaining_trials = max(0, MAX_FREE_TRIALS - st.session_state["usage_count"])
 
-        if is_authenticated:
-            st.success(f"🎉 Đã kích hoạt bản quyền (Tài khoản: **{input_user}**). Không giới hạn lượt dùng!")
+        # Xử lý thông báo theo từng trường hợp nhập
+        if user_clean or pwd_clean:
+            if is_authenticated:
+                st.success(f"🎉 Đăng nhập thành công! Bản quyền mở khóa cho tài khoản: **{user_clean}** (Không giới hạn lượt dùng).")
+            else:
+                st.error("❌ Tên tài khoản hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại!")
         else:
             if remaining_trials > 0:
                 st.info(f"🎁 Dùng thử: Còn **{remaining_trials}/{MAX_FREE_TRIALS}** lượt trên trình duyệt này.")
             else:
-                st.error("⛔ Đã hết 2 lượt dùng thử! Vui lòng đăng nhập tài khoản.")
+                st.warning("⛔ Đã hết 2 lượt dùng thử! Vui lòng nhập Tên tài khoản và Mật khẩu được cấp để tiếp tục.")
 
     col_sub1, col_sub2 = st.columns(2)
     with col_sub1:

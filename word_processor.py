@@ -1,6 +1,5 @@
 import io
 import re
-from difflib import SequenceMatcher
 from docx import Document
 from docx.shared import RGBColor, Pt
 from docx.oxml import OxmlElement
@@ -8,26 +7,17 @@ from docx.text.paragraph import Paragraph
 
 class WordProcessor:
     @staticmethod
-    def _clean_str(text: str) -> str:
-        if not text:
-            return ""
-        text = text.replace('\xa0', ' ').replace('\t', ' ').replace('\r', '')
-        text = re.sub(r'[*_#`]', '', text)
-        return re.sub(r'\s+', ' ', text).strip().lower()
-
-    @staticmethod
     def extract_text(file_bytes: bytes) -> str:
         doc = Document(io.BytesIO(file_bytes))
         full_text = []
+        for table in doc.tables:
+            for row in table.rows:
+                cells_text = [c.text.strip().replace('\n', ' ') for c in row.cells if c.text.strip()]
+                if cells_text:
+                    full_text.append(" | ".join(cells_text))
         for para in doc.paragraphs:
             if para.text.strip():
                 full_text.append(para.text.strip())
-        for table in doc.tables:
-            for row in table.rows:
-                for cell in row.cells:
-                    for p in cell.paragraphs:
-                        if p.text.strip():
-                            full_text.append(p.text.strip())
         return "\n".join(full_text)
 
     @staticmethod
@@ -36,7 +26,7 @@ class WordProcessor:
         paragraph._p.addnext(new_p)
         new_para = Paragraph(new_p, paragraph._parent)
         new_para.paragraph_format.space_before = Pt(3)
-        new_para.paragraph_format.space_after = Pt(4)
+        new_para.paragraph_format.space_after = Pt(3)
         new_para.paragraph_format.line_spacing = 1.15
         
         if prefix:
@@ -57,65 +47,43 @@ class WordProcessor:
         doc = Document(io.BytesIO(file_bytes))
         sua_doi_list = ai_data.get('sua_doi', [])
         
-        # Bảng màu đại diện từng phân hệ
-        color_digital = RGBColor(0, 102, 204)   # Xanh dương
-        color_ai = RGBColor(214, 107, 0)        # Vàng cam
-        color_stem = RGBColor(16, 124, 65)      # Xanh lá cây (STEM)
-        
-        all_paragraphs = list(doc.paragraphs)
-        for table in doc.tables:
-            for row in table.rows:
-                for cell in row.cells:
-                    for p in cell.paragraphs:
-                        all_paragraphs.append(p)
-
-        used_paragraphs = set()
+        color_digital = RGBColor(0, 102, 204)  # Xanh dương
+        color_ai = RGBColor(214, 107, 0)       # Cam
+        color_stem = RGBColor(16, 124, 65)     # Xanh lá
 
         for item in sua_doi_list:
-            raw_anchor = item.get('anchor_text', '').strip()
+            lesson_name = item.get('anchor_text', '').strip()
             content = item.get('insert_content', '').strip()
             loai = item.get('loai', 'Năng lực số')
-            
-            if not raw_anchor or not content:
+
+            if not content:
                 continue
-            
-            clean_anchor = WordProcessor._clean_str(raw_anchor)
-            
+
             if loai == "Giáo dục STEM":
-                prefix = "[Giáo dục STEM]:"
-                color = color_stem
+                prefix, color = "[Giáo dục STEM]:", color_stem
             elif loai == "Năng lực AI":
-                prefix = "[Năng lực AI]:"
-                color = color_ai
+                prefix, color = "[Năng lực AI]:", color_ai
             else:
-                prefix = "[Năng lực số]:"
+                prefix, prefix_color = "[Năng lực số]:", color_digital
                 color = color_digital
-            
-            inserted = False
-            best_match_para = None
-            best_ratio = 0.0
 
-            for para in all_paragraphs:
-                clean_p_text = WordProcessor._clean_str(para.text)
-                if not clean_p_text:
-                    continue
-                
-                if (clean_anchor in clean_p_text or clean_p_text in clean_anchor) and para not in used_paragraphs:
-                    WordProcessor.insert_paragraph_after(para, content, color, prefix)
-                    used_paragraphs.add(para)
-                    inserted = True
-                    break
-                
-                ratio = SequenceMatcher(None, clean_anchor, clean_p_text).ratio()
-                if ratio > best_ratio:
-                    best_ratio = ratio
-                    best_match_para = para
-
-            if not inserted and best_match_para is not None and best_ratio >= 0.55:
-                if best_match_para not in used_paragraphs:
-                    WordProcessor.insert_paragraph_after(best_match_para, content, color, prefix)
-                    used_paragraphs.add(best_match_para)
-                    inserted = True
+            # Quét các bảng trong tệp Kế hoạch giáo dục
+            for table in doc.tables:
+                for row in table.rows:
+                    row_text = " ".join([c.text for c in row.cells]).lower()
+                    # Kiểm tra xem dòng này có chứa đúng tên Bài học cần tích hợp không
+                    if lesson_name.lower() in row_text:
+                        # Cột Yêu cầu cần đạt thường nằm ở ô cuối cùng của hàng
+                        target_cell = row.cells[-1]
+                        
+                        # Tìm vị trí thích hợp trong ô: ưu tiên sau mục 2. Năng lực hoặc cuối ô
+                        target_para = target_cell.paragraphs[-1]
+                        for p in target_cell.paragraphs:
+                            if "năng lực" in p.text.lower():
+                                target_para = p
+                        
+                        WordProcessor.insert_paragraph_after(target_para, content, color, prefix)
+                        break
 
         output_stream = io.BytesIO()
         doc.save(output_stream)

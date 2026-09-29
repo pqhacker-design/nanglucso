@@ -117,34 +117,37 @@ Quy tắc phân bổ:
 """
 
     def analyze_and_integrate(self, doc_text: str, cap_hoc: str, integration_type: str) -> dict:
-        """
-        Phân tích tài liệu Word: Tự động nhận diện là Giáo án KHBD thông thường
-        hoặc Bảng Kế hoạch giáo dục (KHGD) để trả về anchor_text chính xác.
-        """
         focus_instruction = self._build_focus_instruction(cap_hoc, integration_type)
         
-        # Nhận diện xem tài liệu có phải là bảng Kế hoạch giáo dục (KHGD)
-        is_khgd_table = any(kw in doc_text.lower() for kw in ["yêu cầu cần đạt", "số tiết", "bài học |"])
+        # Chỉ coi là bảng KHGD khi có đồng thời cả STT, Số tiết, Tuần
+        text_lower = doc_text.lower()
+        is_khgd_table = ("số tiết" in text_lower or "so tiet" in text_lower) and \
+                        ("tuần" in text_lower or "tuan" in text_lower) and \
+                        ("yêu cầu cần đạt" in text_lower)
 
         if is_khgd_table:
             context_guide = """
-TÀI LIỆU LÀ BẢNG KẾ HOẠCH GIÁO DỤC MÔN HỌC (gồm các cột: STT | Bài học | Số tiết | Tuần | Yêu cầu cần đạt).
-QUY TẮC QUAN TRỌNG:
-1. `anchor_text`: PHẢI ghi chính xác TÊN BÀI HỌC có trong bảng (ví dụ: "Bài 1. Đơn thức", "Bài 2. Đa thức", "Luyện tập chung", "Bài 3. Phép cộng và phép trừ đa thức",...). Không ghi số thứ tự hay cột khác.
-2. `insert_content`: Nội dung yêu cầu cần đạt bổ sung vào cột 'Yêu cầu cần đạt' của bài học đó. Nội dung ngắn gọn, khả thi, thể hiện năng lực cụ thể của học sinh.
-3. Rà soát từng bài học trong bảng và đề xuất các mục bổ sung phù hợp cho từng bài.
+TÀI LIỆU LÀ BẢNG PHÂN PHỐI CHƯƠNG TRÌNH / KẾ HOẠCH GIÁO DỤC (CÓ CÁC CỘT: STT, BÀI HỌC, SỐ TIẾT, TUẦN, YÊU CẦU CẦN ĐẠT).
+QUY TẮC:
+1. `anchor_text`: Trích chính xác TÊN BÀI HỌC có trong bảng (ví dụ: "Bài 1. Đơn thức", "Bài 2. Bản vẽ chi tiết").
+2. `insert_content`: Nội dung yêu cầu cần đạt bổ sung vào cột Yêu cầu cần đạt của bài đó.
 """
         else:
             context_guide = """
-TÀI LIỆU LÀ KẾ HOẠCH BÀI DẠY (GIÁO ÁN WORD THÔNG THƯỜNG).
-QUY TẮC ANCHOR TEXT:
-1. `anchor_text`: PHẢI trích nguyên văn một câu/dòng chữ có thật trong tài liệu (Plain text, không thêm dấu ** hay ký tự markdown).
-2. Trích đoạn dài từ 6 - 15 từ mang ngữ cảnh riêng biệt của bài học/hoạt động đó.
-3. Rà soát lần lượt từ Mục tiêu đến các Hoạt động (Khởi động, Hình thành kiến thức, Luyện tập, Vận dụng) để tích hợp sâu từ 4 đến 8 vị trí cho mỗi bài.
+TÀI LIỆU LÀ KẾ HOẠCH BÀI DẠY (GIÁO ÁN TIẾN TRÌNH LÊN LỚP, CÓ THỂ ĐƯỢC KẺ BẢNG CHIA CỘT HOẠT ĐỘNG GV - HS).
+QUY TẮC BẮT BUỘC ĐỂ KHÔNG BỊ CHÈN DỒN VÀO CUỐI:
+1. `anchor_text` PHẢI là một câu/dòng chữ NGUYÊN VĂN NẰM RẢI RÁC Ở CÁC HOẠT ĐỘNG KHÁC NHAU:
+   - Một vị trí ở phần "Mục tiêu: Năng lực"
+   - Một vị trí ở "Hoạt động 1: Khởi động" (ví dụ trích câu dẫn dắt hoặc câu hỏi khởi động)
+   - Một vị trí ở "Hoạt động 2: Hình thành kiến thức" (trích câu lệnh GV giao nhiệm vụ tìm hiểu)
+   - Một vị trí ở "Hoạt động 3: Luyện tập"
+   - Một vị trí ở "Hoạt động 4: Vận dụng"
+2. TUYỆT ĐỐI KHÔNG dùng tên bài học làm anchor_text.
+3. TUYỆT ĐỐI KHÔNG chọn các anchor_text nằm cạnh nhau hoặc dồn vào một chỗ. Trích đoạn dài từ 6 - 15 từ đặc trưng của từng bước hoạt động.
 """
 
         prompt = f"""
-Bạn là chuyên gia sư phạm và chuyển đổi số trong giáo dục phổ thông Việt Nam.
+Bạn là chuyên gia sư phạm và chuyển đổi số trong giáo dục Việt Nam.
 Hãy phân tích tài liệu dưới đây và xác định các vị trí tích hợp phù hợp.
 
 Cấp học chỉ định: {cap_hoc}
@@ -158,7 +161,6 @@ Nội dung tài liệu gốc:
 {doc_text}
 ----------------------------------
 """
-
         try:
             response = self.client.models.generate_content(
                 model=self.model_name,
@@ -166,7 +168,7 @@ Nội dung tài liệu gốc:
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
                     response_schema=TichHopResult,
-                    temperature=0.4
+                    temperature=0.35
                 )
             )
             return json.loads(response.text)
@@ -176,7 +178,7 @@ Nội dung tài liệu gốc:
             raise RuntimeError("Dữ liệu phản hồi từ AI chưa đúng cấu trúc JSON. Vui lòng bấm thử lại.")
         except Exception as e:
             raise RuntimeError(self._format_api_error(e))
-
+            
     def analyze_pptx_and_integrate(self, slides_text: str, cap_hoc: str, integration_type: str) -> dict:
         """Phân tích các slide PowerPoint và đề xuất lời nhắc sư phạm vào Slide Notes."""
         focus_instruction = self._build_focus_instruction(cap_hoc, integration_type)

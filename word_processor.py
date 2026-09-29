@@ -9,11 +9,9 @@ from docx.text.paragraph import Paragraph
 class WordProcessor:
     @staticmethod
     def _clean_str(text: str) -> str:
-        """Làm sạch chuỗi: loại bỏ khoảng trắng thừa, dấu câu đặc biệt, đưa về chữ thường."""
         if not text:
             return ""
         text = text.replace('\xa0', ' ').replace('\t', ' ').replace('\r', '')
-        # Bỏ dấu chấm, hai chấm, gạch ngang để so sánh tên bài chuẩn xác
         text = re.sub(r'[*_#`.:\-,]', ' ', text)
         return re.sub(r'\s+', ' ', text).strip().lower()
 
@@ -33,7 +31,6 @@ class WordProcessor:
 
     @staticmethod
     def insert_paragraph_after(paragraph, text, color_rgb, prefix=""):
-        """Chèn đoạn văn mới liền sau đoạn văn paragraph chỉ định."""
         new_p = OxmlElement('w:p')
         paragraph._p.addnext(new_p)
         new_para = Paragraph(new_p, paragraph._parent)
@@ -63,8 +60,17 @@ class WordProcessor:
         color_ai = RGBColor(214, 107, 0)       # Cam
         color_stem = RGBColor(16, 124, 65)     # Xanh lá
 
-        # Kiểm tra xem tài liệu có bảng Kế hoạch giáo dục không
-        has_tables = len(doc.tables) > 0
+        # Thu thập TẤT CẢ paragraphs (cả đoạn văn ngoài lẫn đoạn văn nằm trong ô bảng)
+        all_doc_paras = list(doc.paragraphs)
+        for table in doc.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    for p in cell.paragraphs:
+                        if p.text.strip():
+                            all_doc_paras.append(p)
+
+        # Lưu vết các đoạn đã chèn để không chèn trùng
+        used_paras = set()
 
         for item in sua_doi_list:
             raw_anchor = item.get('anchor_text', '').strip()
@@ -84,82 +90,33 @@ class WordProcessor:
                 prefix, color = "[Năng lực số]:", color_digital
 
             inserted = False
+            best_match_para = None
+            best_ratio = 0.0
 
-            # --- TRƯỜNG HỢP 1: TÀI LIỆU DẠNG BẢNG (KẾ HOẠCH GIÁO DỤC) ---
-            if has_tables:
-                for table in doc.tables:
-                    for row in table.rows:
-                        # Xác định văn bản của toàn bộ hàng
-                        row_cells_text = [WordProcessor._clean_str(c.text) for c in row.cells]
-                        full_row_text = " ".join(row_cells_text)
+            # 1. Tìm chính xác đoạn văn chứa câu neo (anchor)
+            for para in all_doc_paras:
+                clean_p = WordProcessor._clean_str(para.text)
+                if not clean_p:
+                    continue
 
-                        # Kiểm tra xem dòng này có chứa tên bài học (hoặc độ tương đồng cao)
-                        match_found = False
-                        if clean_anchor in full_row_text:
-                            match_found = True
-                        else:
-                            # So khớp gần đúng với ô tên bài học (thường là ô thứ 2 hoặc 1)
-                            for cell_text in row_cells_text[:3]:
-                                if len(cell_text) > 3 and SequenceMatcher(None, clean_anchor, cell_text).ratio() >= 0.65:
-                                    match_found = True
-                                    break
-
-                        if match_found:
-                            # Tìm đúng ô chứa cột "Yêu cầu cần đạt" (thường là ô có chữ 'kiến thức' hoặc 'năng lực' hoặc ô cuối)
-                            target_cell = None
-                            for cell in row.cells:
-                                c_lower = cell.text.lower()
-                                if "năng lực" in c_lower or "kiến thức" in c_lower or "phẩm chất" in c_lower:
-                                    target_cell = cell
-                                    break
-                            
-                            # Nếu không nhận diện được từ khóa, mặc định lấy ô dài nhất hoặc ô cuối cùng
-                            if not target_cell:
-                                target_cell = max(row.cells, key=lambda c: len(c.text))
-
-                            # Chọn vị trí chèn trong ô: ưu tiên sau đoạn có chữ 'năng lực'
-                            target_para = target_cell.paragraphs[-1]
-                            for p in target_cell.paragraphs:
-                                if "năng lực" in p.text.lower():
-                                    target_para = p
-                            
-                            WordProcessor.insert_paragraph_after(target_para, content, color, prefix)
-                            inserted = True
-                            break
-                    if inserted:
-                        break
-
-            # --- TRƯỜNG HỢP 2: NẾU CHƯA CHÈN ĐƯỢC HOẶC TÀI LIỆU LÀ KHBD VĂN BẢN THƯỜNG ---
-            if not inserted:
-                # Quét tất cả các đoạn văn trong tài liệu
-                all_paragraphs = list(doc.paragraphs)
-                for table in doc.tables:
-                    for row in table.rows:
-                        for cell in row.cells:
-                            for p in cell.paragraphs:
-                                all_paragraphs.append(p)
-
-                best_match_para = None
-                best_ratio = 0.0
-
-                for para in all_paragraphs:
-                    clean_p = WordProcessor._clean_str(para.text)
-                    if not clean_p:
-                        continue
-                    
-                    if clean_anchor in clean_p or clean_p in clean_anchor:
-                        WordProcessor.insert_paragraph_after(para, content, color, prefix)
-                        inserted = True
-                        break
-
-                    ratio = SequenceMatcher(None, clean_anchor, clean_p).ratio()
-                    if ratio > best_ratio:
-                        best_ratio = ratio
-                        best_match_para = para
-
-                if not inserted and best_match_para is not None and best_ratio >= 0.55:
-                    WordProcessor.insert_paragraph_after(best_match_para, content, color, prefix)
+                # Nếu câu neo nằm trong đoạn văn này
+                if clean_anchor in clean_p and para not in used_paras:
+                    WordProcessor.insert_paragraph_after(para, content, color, prefix)
+                    used_paras.add(para)
                     inserted = True
+                    break
+
+                # Tính độ tương đồng phòng ngừa sai khác khoảng trắng/dấu câu
+                ratio = SequenceMatcher(None, clean_anchor, clean_p).ratio()
+                if ratio > best_ratio and para not in used_paras:
+                    best_ratio = ratio
+                    best_match_para = para
+
+            # 2. Nếu không khớp 100%, dùng đoạn văn có độ tương đồng cao nhất (>= 60%)
+            if not inserted and best_match_para is not None and best_ratio >= 0.60:
+                WordProcessor.insert_paragraph_after(best_match_para, content, color, prefix)
+                used_paras.add(best_match_para)
+                inserted = True
 
         output_stream = io.BytesIO()
         doc.save(output_stream)

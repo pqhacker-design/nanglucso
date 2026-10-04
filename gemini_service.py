@@ -117,9 +117,12 @@ Quy tắc phân bổ:
 """
 
     def analyze_and_integrate(self, doc_text: str, cap_hoc: str, integration_type: str) -> dict:
+        """
+        Phân tích tài liệu Word: Tự động phân loại KHBD (giáo án tiến trình) hoặc KHGD (bảng năm học)
+        và quét toàn bộ từ đầu đến cuối không giới hạn số lượng.
+        """
         focus_instruction = self._build_focus_instruction(cap_hoc, integration_type)
         
-        # Chỉ coi là bảng KHGD khi có đồng thời cả STT, Số tiết, Tuần
         text_lower = doc_text.lower()
         is_khgd_table = ("số tiết" in text_lower or "so tiet" in text_lower) and \
                         ("tuần" in text_lower or "tuan" in text_lower) and \
@@ -127,28 +130,31 @@ Quy tắc phân bổ:
 
         if is_khgd_table:
             context_guide = """
-TÀI LIỆU LÀ BẢNG PHÂN PHỐI CHƯƠNG TRÌNH / KẾ HOẠCH GIÁO DỤC (CÓ CÁC CỘT: STT, BÀI HỌC, SỐ TIẾT, TUẦN, YÊU CẦU CẦN ĐẠT).
-QUY TẮC:
-1. `anchor_text`: Trích chính xác TÊN BÀI HỌC có trong bảng (ví dụ: "Bài 1. Đơn thức", "Bài 2. Bản vẽ chi tiết").
-2. `insert_content`: Nội dung yêu cầu cần đạt bổ sung vào cột Yêu cầu cần đạt của bài đó.
+TÀI LIỆU LÀ BẢNG PHÂN PHỐI CHƯƠNG TRÌNH / KẾ HOẠCH GIÁO DỤC (GỒM CÁC CỘT: STT, BÀI HỌC, SỐ TIẾT, TUẦN, YÊU CẦU CẦN ĐẠT).
+QUY TẮC QUAN TRỌNG:
+1. Bạn PHẢI duyệt qua TẤT CẢ các bài học có trong bảng từ bài đầu tiên đến bài cuối cùng.
+2. Với MỖI bài học, phải đề xuất nội dung tích hợp bổ sung vào cột 'Yêu cầu cần đạt'.
+3. `anchor_text`: Trích chính xác TÊN BÀI HỌC trong bảng (ví dụ: "Bài 1. Đơn thức", "Bài 2. Đa thức", "Luyện tập chung").
+4. `insert_content`: Nội dung năng lực bổ sung ngắn gọn, chuẩn sư phạm.
 """
         else:
             context_guide = """
-TÀI LIỆU LÀ KẾ HOẠCH BÀI DẠY (GIÁO ÁN TIẾN TRÌNH LÊN LỚP, CÓ THỂ ĐƯỢC KẺ BẢNG CHIA CỘT HOẠT ĐỘNG GV - HS).
-QUY TẮC BẮT BUỘC ĐỂ KHÔNG BỊ CHÈN DỒN VÀO CUỐI:
-1. `anchor_text` PHẢI là một câu/dòng chữ NGUYÊN VĂN NẰM RẢI RÁC Ở CÁC HOẠT ĐỘNG KHÁC NHAU:
-   - Một vị trí ở phần "Mục tiêu: Năng lực"
-   - Một vị trí ở "Hoạt động 1: Khởi động" (ví dụ trích câu dẫn dắt hoặc câu hỏi khởi động)
-   - Một vị trí ở "Hoạt động 2: Hình thành kiến thức" (trích câu lệnh GV giao nhiệm vụ tìm hiểu)
-   - Một vị trí ở "Hoạt động 3: Luyện tập"
-   - Một vị trí ở "Hoạt động 4: Vận dụng"
-2. TUYỆT ĐỐI KHÔNG dùng tên bài học làm anchor_text.
-3. TUYỆT ĐỐI KHÔNG chọn các anchor_text nằm cạnh nhau hoặc dồn vào một chỗ. Trích đoạn dài từ 6 - 15 từ đặc trưng của từng bước hoạt động.
+TÀI LIỆU LÀ KẾ HOẠCH BÀI DẠY (GIÁO ÁN TIẾN TRÌNH LÊN LỚP, CÓ THỂ CÓ BẢNG HOẠT ĐỘNG GV - HS HOẶC NHIỀU BÀI DẠY).
+QUY TẮC PHỦ KÍN TOÀN BỘ GIÁO ÁN (QUÉT SÂU - KHÔNG BỎ SÓT - KHÔNG GIỚI HẠN VỊ TRÍ):
+1. Bạn PHẢI đọc và xử lý từ đầu đến dòng cuối cùng của tài liệu. Tuyệt đối không được chỉ dừng lại ở các bài đầu tiên hay chỉ lấy 4-5 vị trí.
+2. Với MỖI bài dạy/tiết dạy xuất hiện trong file, PHẢI tích hợp rải đều qua các mục:
+   - 1 vị trí ở phần "Mục tiêu / Năng lực"
+   - 1 vị trí ở "Hoạt động 1: Khởi động" (câu hỏi, dẫn dắt, video số, AI gợi mở)
+   - 1-2 vị trí ở "Hoạt động 2: Hình thành kiến thức" (thao tác số, thực hành công cụ, giải pháp STEM)
+   - 1 vị trí ở "Hoạt động 3: Luyện tập" (bảng tính, đối chiếu kết quả với AI, bài tập thực hành)
+   - 1 vị trí ở "Hoạt động 4: Vận dụng" (dự án STEM mini, bài toán thực tiễn)
+3. `anchor_text`: Trích NGUYÊN VĂN một câu hoặc dòng lệnh có thật tại bước hoạt động đó (từ 6 - 15 từ, plain text, không thêm định dạng markdown).
+4. KHÔNG chọn các anchor_text nằm sát nhau để tránh dồn ứ nội dung vào một chỗ.
 """
 
         prompt = f"""
-Bạn là chuyên gia sư phạm và chuyển đổi số trong giáo dục Việt Nam.
-Hãy phân tích tài liệu dưới đây và xác định các vị trí tích hợp phù hợp.
+Bạn là chuyên gia sư phạm và chuyển đổi số trong giáo dục phổ thông Việt Nam.
+Hãy phân tích tài liệu dưới đây và xác định TẤT CẢ các vị trí tích hợp phù hợp từ đầu đến cuối tệp.
 
 Cấp học chỉ định: {cap_hoc}
 
@@ -161,6 +167,7 @@ Nội dung tài liệu gốc:
 {doc_text}
 ----------------------------------
 """
+
         try:
             response = self.client.models.generate_content(
                 model=self.model_name,
@@ -168,7 +175,8 @@ Nội dung tài liệu gốc:
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
                     response_schema=TichHopResult,
-                    temperature=0.35
+                    temperature=0.35,
+                    max_output_tokens=8192
                 )
             )
             return json.loads(response.text)
@@ -178,9 +186,9 @@ Nội dung tài liệu gốc:
             raise RuntimeError("Dữ liệu phản hồi từ AI chưa đúng cấu trúc JSON. Vui lòng bấm thử lại.")
         except Exception as e:
             raise RuntimeError(self._format_api_error(e))
-            
+
     def analyze_pptx_and_integrate(self, slides_text: str, cap_hoc: str, integration_type: str) -> dict:
-        """Phân tích các slide PowerPoint và đề xuất lời nhắc sư phạm vào Slide Notes."""
+        """Phân tích các slide PowerPoint và đề xuất lời nhắc sư phạm vào Slide Notes cho toàn bộ bài giảng."""
         focus_instruction = self._build_focus_instruction(cap_hoc, integration_type)
 
         prompt = f"""
@@ -191,10 +199,11 @@ Cấp học chỉ định: {cap_hoc}
 
 {focus_instruction}
 
-QUY TẮC:
-1. Xác định chính xác `slide_number` (số nguyên) của Slide cần tích hợp.
-2. Nội dung `insert_content`: Lời nhắc sư phạm thiết thực cho GV khi đang trình chiếu (ví dụ: đặt câu hỏi nghiên cứu giải pháp STEM, hướng dẫn HS tra cứu dữ liệu số, nhắc HS dùng AI phản biện kết quả).
-3. Chọn lọc từ 4 đến 8 slide hoạt động trọng tâm (thảo luận, thực hành, vận dụng) để tích hợp.
+QUY TẮC QUÉT TOÀN BỘ SLIDE:
+1. Rà soát lần lượt từ Slide 1 đến Slide cuối cùng của tệp.
+2. Với các Slide có hoạt động học (thảo luận, bài tập, câu hỏi, thực hành, vận dụng), hãy xác định chính xác `slide_number` (số nguyên) để đề xuất nội dung.
+3. Nội dung `insert_content`: Lời nhắc sư phạm thiết thực cho GV khi đang trình chiếu (câu hỏi gợi mở, ứng dụng phần mềm số, dùng AI phản biện, hoạt động giải quyết vấn đề STEM).
+4. Phủ đều khắp các slide của bài giảng, không dừng lại ở những slide đầu tiên.
 
 Danh sách Slide:
 ----------------------------------
@@ -209,7 +218,8 @@ Danh sách Slide:
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
                     response_schema=TichHopResult,
-                    temperature=0.4
+                    temperature=0.35,
+                    max_output_tokens=8192
                 )
             )
             return json.loads(response.text)

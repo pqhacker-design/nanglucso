@@ -118,7 +118,7 @@ Cấp học chỉ định: {cap_hoc}
 QUY TẮC ANCHOR TEXT:
 - `anchor_text` PHẢI là câu văn nguyên văn (plain text, không thêm dấu `**` hay markdown) có trong giáo án.
 - Chọn cụm từ dài 6 - 15 từ mang ngữ cảnh riêng biệt của từng bài/hoạt động.
-- Trả về từ 4 đến 8 vị trí tích hợp phân bổ đều theo tiến trình bài học.
+- Trả về từ 4 đến 8 vị trí tích hợp phân bổ đều theo tiến trình mỗi bài học.
 
 Nội dung giáo án:
 ----------------------------------

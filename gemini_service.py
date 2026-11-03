@@ -22,7 +22,7 @@ class GeminiService:
         if not api_key:
             raise ValueError("Mã API Key không được để trống. Vui lòng nhập API Key.")
         self.client = genai.Client(api_key=api_key)
-        self.model_name = "gemini-2.5-flash"
+        self.model_name = "gemini-3.8-flash"
 
     @staticmethod
     def _format_api_error(error: Exception) -> str:

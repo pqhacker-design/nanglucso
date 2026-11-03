@@ -124,7 +124,7 @@ with st.expander("⚙️ **CẤU HÌNH HỆ THỐNG & KÍCH HOẠT BẢN QUYỀN
                     try:
                         client_test = genai.Client(api_key=api_key)
                         client_test.models.generate_content(
-                            model="gemini-2.5-flash",
+                            model="gemini-3.8-flash",
                             contents="ping"
                         )
                         st.success("✅ Kết nối thành công! API Key hợp lệ.")
